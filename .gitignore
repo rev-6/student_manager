@@ -7,4 +7,3 @@ venv/
 .pyc
 .vs/
 db.sqlite3
-README.md

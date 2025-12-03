@@ -1,0 +1,62 @@
+﻿{% load static %}
+<!DOCTYPE HTML>
+<html lang="ru">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/style.css'%}">
+</head>
+<body>
+    <header class="header">
+        <nav class="navigation">
+            <p class="text" style="font-size: 25px; left: 47%;  font-style: oblique;">Главная</p>
+            <div class="button_group">
+                {% if user.is_authenticated %}
+                <form id="logoutForm" action="/logout/" method="post" class="navbar-right">
+                    {% csrf_token %}
+                    <span class="navbar-right">{{ user.username }}</span>
+                    <a href="javascript:document.getElementById('logoutForm').submit()" style="text-decoration: none;">Log off</a>
+                </form>
+                {% endif %}
+                <form action="login">
+                    <button class="green" type="submit" class="btn btn-primary Login">Log in</button>
+                </form>
+                <form action="register">
+                    <button class="caeruleum" type="submit" class="btn btn-primary Signup">Sign up</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+    <main>
+        <header>
+            <p style="color:crimson; font-size: 35px"><b>Добро пожаловать :)</b></p>
+        </header>
+        <p style="color: #008EB0; font-size: 30px;"><b>Вы находитесь на сайте.</b></p>
+        <div class="centre_group">
+            <!--<form action="/create_student">
+                <button style="height: 50px; font-size: 16px;" class="white" type="submit">Добавление студента в БД</button>
+            </form>
+            <br>
+            <form action="/list_students_group">
+                <button style="width: 231px; height: 50px; font-size: 16px;" class="white" type="submit">Список студентов</button>
+            </form>
+            <br>
+            <form action="/complaints">
+            <button style="width: 231px; height: 50px; font-size: 16px;" class="white" type="submit">Жалобы</button>
+            </form>
+            <br>
+            <form action="/profile">
+                <button style="width: 231px; height: 50px; font-size: 16px;" class="white" type="submit">Профиль</button>
+            </form> -->
+        </div>
+    </main>
+</body>
+<footer style="font-size: 18px;
+                   color: black;
+                   line-height: 0;">
+    <a href="http://127.0.0.1:8000/admin/login/?next=/admin/" style="text-decoration: none; color: black;"><ul> Copyright (c) 2025. Все права защищены.</ul></a>
+    <ul> Faster </ul>
+</footer>
+</html>

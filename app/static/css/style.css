@@ -1,0 +1,133 @@
+body {
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 0;
+    #background: linear-gradient(#b8e3b5, #5cff5d, #03c903);
+    color: #ffffff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: none;
+}
+
+header {
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height:30px;
+    position: sticky;
+}
+
+.navigation {
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+    list-style-type: none;
+    padding: 0;
+    gap: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+nav:hover {
+    color: #4fc3f7;
+}
+
+main {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+}
+
+p {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+}
+
+.button_group {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    align-items: center;
+    right:0;
+    position:absolute;
+    margin-right:30px;
+    border-radius: 20px;
+}
+
+.login {
+    background-color: transparent;
+    color: #ffffff;
+    border: 1px solid #ffffff;
+    display: flex;
+    gap: 1.5rem;
+}
+
+.login:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.text {
+    position: absolute;
+    align-items: center;
+    display: flex;
+    right: 50%;
+    font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif
+}
+
+.navbar-right {
+    font-size: 22px;
+    left: 47%;
+    color: #0d5e02;
+    font-family: P22 Kilkenny Initial Cap;
+    font-style: oblique;
+    line-height: 0;
+}
+
+ul.navbar-right li {
+    list-style-type: none;
+}
+
+a {
+    font-size: 22px;
+    left: 47%;
+    color: #0d5e02;
+    font-family: P22 Kilkenny Initial Cap;
+    font-style: oblique;
+}
+
+button {
+    background: #3c9ed3; /* Синий цвет фона */
+    color: #fff; /* Белый цвет текста */
+    border: none; /* Убираем рамку */
+    padding: 1rem; /* Поля вокруг текста */
+    font-size: 1vw;
+    border-radius: 20px;
+}
+
+.green {
+    background: #87d33c;
+}
+
+.caeruleum {
+    font-size 1vm;
+    padding: 1rem;
+}
+
+button:hover {
+    color: #1aec09;
+}
+
+ul {
+    list-style-type: disc;
+}
