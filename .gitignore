@@ -7,3 +7,4 @@ venv/
 .pyc
 .vs/
 db.sqlite3
+/app/migrations

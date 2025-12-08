@@ -1,62 +1,98 @@
-﻿{% load static %}
-<!DOCTYPE HTML>
-<html lang="ru">
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Main</title>
-    <link rel="stylesheet" type="text/css" href="{% static 'css/style.css'%}">
-</head>
-<body>
-    <header class="header">
-        <nav class="navigation">
-            <p class="text" style="font-size: 25px; left: 47%;  font-style: oblique;">Главная</p>
-            <div class="button_group">
-                {% if user.is_authenticated %}
-                <form id="logoutForm" action="/logout/" method="post" class="navbar-right">
-                    {% csrf_token %}
-                    <span class="navbar-right">{{ user.username }}</span>
-                    <a href="javascript:document.getElementById('logoutForm').submit()" style="text-decoration: none;">Log off</a>
-                </form>
-                {% endif %}
-                <form action="login">
-                    <button class="green" type="submit" class="btn btn-primary Login">Log in</button>
-                </form>
-                <form action="register">
-                    <button class="caeruleum" type="submit" class="btn btn-primary Signup">Sign up</button>
-                </form>
+﻿{% extends 'base.html' %}
+
+{% block title %}Главная - Student Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <!-- Приветствие -->
+        <div class="card text-center">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0"><i class="fas fa-university"></i> Добро пожаловать в систему управления студентами</h3>
             </div>
-        </nav>
-    </header>
-    <main>
-        <header>
-            <p style="color:crimson; font-size: 35px"><b>Добро пожаловать :)</b></p>
-        </header>
-        <p style="color: #008EB0; font-size: 30px;"><b>Вы находитесь на сайте.</b></p>
-        <div class="centre_group">
-            <!--<form action="/create_student">
-                <button style="height: 50px; font-size: 16px;" class="white" type="submit">Добавление студента в БД</button>
-            </form>
-            <br>
-            <form action="/list_students_group">
-                <button style="width: 231px; height: 50px; font-size: 16px;" class="white" type="submit">Список студентов</button>
-            </form>
-            <br>
-            <form action="/complaints">
-            <button style="width: 231px; height: 50px; font-size: 16px;" class="white" type="submit">Жалобы</button>
-            </form>
-            <br>
-            <form action="/profile">
-                <button style="width: 231px; height: 50px; font-size: 16px;" class="white" type="submit">Профиль</button>
-            </form> -->
+            <div class="card-body">
+                <img src="https://via.placeholder.com/300x200/2c3e50/ffffff?text=Student+Management"
+                     alt="Система управления" class="img-fluid rounded mb-4">
+
+                <h5 class="card-title">Управляйте учебным процессом эффективно</h5>
+                <p class="card-text">
+                    Система позволяет отслеживать рабочее время студентов, управлять их данными
+                    и обеспечивать эффективную коммуникацию между студентами и администрацией.
+                </p>
+
+                <div class="row mt-4">
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <i class="fas fa-clock fa-3x text-primary mb-3"></i>
+                                <h5>Тайм-трекер</h5>
+                                <p>Учет рабочего времени с авто-выключением</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <i class="fas fa-users fa-3x text-success mb-3"></i>
+                                <h5>Управление</h5>
+                                <p>Полный контроль над данными студентов</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <i class="fas fa-comments fa-3x text-warning mb-3"></i>
+                                <h5>Коммуникация</h5>
+                                <p>Система сообщений между студентами и админами</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                {% if not user.is_authenticated %}
+                <a href="{% url 'register' %}" class="btn btn-primary btn-lg me-3">
+                    <i class="fas fa-user-plus"></i> Зарегистрироваться
+                </a>
+                <a href="{% url 'login' %}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-sign-in-alt"></i> Войти в систему
+                </a>
+                {% else %}
+                <a href="{% url 'dashboard' %}" class="btn btn-success btn-lg">
+                    <i class="fas fa-tachometer-alt"></i> Перейти в личный кабинет
+                </a>
+                {% endif %}
+            </div>
         </div>
-    </main>
-</body>
-<footer style="font-size: 18px;
-                   color: black;
-                   line-height: 0;">
-    <a href="http://127.0.0.1:8000/admin/login/?next=/admin/" style="text-decoration: none; color: black;"><ul> Copyright (c) 2025. Все права защищены.</ul></a>
-    <ul> Faster </ul>
-</footer>
-</html>
+
+        <!-- Быстрый доступ -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-eye"></i> Публичная информация</h5>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Статистика</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Общая статистика системы:</p>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-user-graduate text-primary"></i> Всего студентов: <strong>{{ total_students|default:"0" }}</strong></li>
+                            <li><i class="fas fa-laptop-code text-success"></i> Работают сейчас: <strong>{{ working_now|default:"0" }}</strong></li>
+                            <li><i class="fas fa-comment-dots text-warning"></i> Активных сообщений: <strong>{{ active_messages|default:"0" }}</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

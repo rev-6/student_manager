@@ -55,9 +55,6 @@ class Message(models.Model):
     response = models.TextField(blank=True)
     responded_at = models.DateTimeField(null=True, blank=True)
     
-    class Meta:
-        ordering = ['-sent_at']
-    
     def __str__(self):
         return f"{self.subject} - {self.student}"
 
@@ -87,7 +84,7 @@ class ComputerStation(models.Model):
     ]
     
     room_number = models.CharField(max_length=10, unique=True)
-    room = models.CharField(max_length=50)
+    room = models.CharField(max_length=100)
     ip_address = models.GenericIPAddressField(blank=True, null=True)
     status2 = models.CharField(max_length=20, choices=STATUS_CHOICES2, default='available')
     current_student = models.ForeignKey(Student, on_delete=models.SET_NULL, null=True, blank=True)
