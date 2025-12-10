@@ -1,0 +1,198 @@
+﻿{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Регистрация студента{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h3 class="mb-0"><i class="fas fa-user-plus"></i> Регистрация нового студента</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="border-bottom pb-2 mb-3">Личная информация</h5>
+                            <div class="mb-3">
+                                <label for="id_student_id" class="form-label">Номер студенческого *</label>
+                                {{ form.student_id }}
+                                {% if form.student_id.errors %}
+                                <div class="text-danger">{{ form.student_id.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="id_first_name" class="form-label">Имя *</label>
+                                    {{ form.first_name }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="id_last_name" class="form-label">Фамилия *</label>
+                                    {{ form.last_name }}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="id_email" class="form-label">Email *</label>
+                                {{ form.email }}
+                                <div class="form-text">Будет использоваться для входа в систему</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="id_phone" class="form-label">Телефон</label>
+                                {{ form.phone }}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="id_group" class="form-label">Группа/Курс *</label>
+                                {{ form.group }}
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h5 class="border-bottom pb-2 mb-3">Безопасность и фото</h5>
+
+                            <div class="mb-3">
+                                <label for="id_password" class="form-label">Пароль *</label>
+                                {{ form.password }}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="id_password_confirm" class="form-label">Подтверждение пароля *</label>
+                                {{ form.password_confirm }}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="id_photo" class="form-label">Фотография</label>
+                                {{ form.photo }}
+                                <div class="form-text">Рекомендуемый размер: 300x300px</div>
+                            </div>
+
+                            <!-- Предпросмотр фото -->
+                            <div class="mb-3 text-center">
+                                <img id="photoPreview" src="https://via.placeholder.com/150/ccc/333?text=Фото"
+                                     alt="Предпросмотр" class="img-thumbnail" style="width: 150px; height: 150px; object-fit: cover;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Правила -->
+                    <div class="card mt-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-file-signature"></i> Соглашения</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="agreeRules" required>
+                                <label class="form-check-label" for="agreeRules">
+                                    Я согласен с <a href="#" data-bs-toggle="modal" data-bs-target="#rulesModal">правилами пользования системой</a>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="agreePrivacy" required>
+                                <label class="form-check-label" for="agreePrivacy">
+                                    Я согласен на обработку персональных данных
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 text-center">
+                        <button type="submit" class="btn btn-success btn-lg px-5">
+                            <i class="fas fa-user-check"></i> Зарегистрироваться
+                        </button>
+                        <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-lg ms-2">
+                            <i class="fas fa-times"></i> Отмена
+                        </a>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer text-center">
+                Уже есть аккаунт? <a href="{% url 'login' %}" class="text-decoration-none">Войдите здесь</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно с правилами -->
+<div class="modal fade" id="rulesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-book"></i> Правила пользования системой</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>1. Общие положения</h6>
+                <p>Система предназначена для учета рабочего времени студентов и управления учебным процессом.</p>
+
+                <h6>2. Обязанности студента</h6>
+                <ul>
+                    <li>Аккуратно вести учет рабочего времени</li>
+                    <li>Соблюдать правила техники безопасности</li>
+                    <li>Не передавать свои учетные данные третьим лицам</li>
+                    <li>Своевременно информировать администрацию о проблемах</li>
+                </ul>
+
+                <h6>3. Использование компьютеров</h6>
+                <ul>
+                    <li>Максимальное время непрерывной работы - 8 часов</li>
+                    <li>Запрещено устанавливать постороннее ПО</li>
+                    <li>Обязательно сохранять свои работы на внешние носители</li>
+                </ul>
+
+                <h6>4. Ответственность</h6>
+                <p>Студент несет ответственность за сохранность своего рабочего места и оборудования.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Предпросмотр фото при выборе
+    document.getElementById('id_photo').onchange = function(evt) {
+        const [file] = this.files;
+        if (file) {
+            document.getElementById('photoPreview').src = URL.createObjectURL(file);
+        }
+    };
+
+    // Валидация формы
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const password = document.getElementById('id_password').value;
+        const confirm = document.getElementById('id_password_confirm').value;
+
+        if (password !== confirm) {
+            e.preventDefault();
+            alert('Пароли не совпадают!');
+            return false;
+        }
+
+        if (password.length < 6) {
+            e.preventDefault();
+            alert('Пароль должен содержать минимум 6 символов!');
+            return false;
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}
+<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+</head>
+<body>
+
+</body>
+</html>
