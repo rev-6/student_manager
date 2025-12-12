@@ -113,12 +113,10 @@ def student_registration(request):
             messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
     else:
         form = StudentRegistrationForm()
-    
     context = {
         'form': form,
         'page_title': 'Регистрация студента'
     }
-    
     return render(request, 'register/registration.html', context)
 
 class CustomLoginView(LoginView):
@@ -145,6 +143,31 @@ class CustomLoginView(LoginView):
                 return '/dashboard/'
             except:
                 return '/'
+
+def public_working_students(request):
+    working_students = Student.objects.filter(
+        work_sessions__is_active=True
+    ).distinct().select_related('user')
+    
+    # Компьютерные станции с текущими студентами
+    occupied_stations = ComputerStation.objects.filter(
+        status2='occupied'
+    ).select_related('current_student')
+    
+    # Статистика
+    total_working = working_students.count()
+    total_computers = ComputerStation.objects.count()
+    available_computers = ComputerStation.objects.filter(status2='available').count()
+    
+    context = {
+        'working_students': working_students,
+        'occupied_stations': occupied_stations,
+        'total_working': total_working,
+        'total_computers': total_computers,
+        'available_computers': available_computers,
+        'current_time': timezone.now(),
+    }
+    return render(request, 'students/public/working_students.html', context)
 
 
 def admin_required(view_func): #Декоратор для проверки прав администратора

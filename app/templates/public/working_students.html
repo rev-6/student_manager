@@ -1,0 +1,209 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Кто сейчас работает{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Заголовок с статистикой -->
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <h1 class="display-4 mb-3">
+                    <i class="fas fa-laptop-code text-primary"></i> Рабочие места
+                </h1>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="h2 text-primary">{{ total_working }}</div>
+                        <p class="text-muted">Студентов работают</p>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="h2 text-success">{{ available_computers }}</div>
+                        <p class="text-muted">Свободных компьютеров</p>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="h2 text-info">{{ total_computers }}</div>
+                        <p class="text-muted">Всего компьютеров</p>
+                    </div>
+                </div>
+                <p class="text-muted mt-3">
+                    <i class="fas fa-clock"></i> Время обновления: {{ current_time|time:"H:i" }}
+                </p>
+            </div>
+        </div>
+        
+        <!-- Сейчас работают -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="fas fa-user-clock"></i> Сейчас работают ({{ working_students|length }})</h4>
+            </div>
+            <div class="card-body">
+                {% if working_students %}
+                    <div class="row">
+                        {% for student in working_students %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-4">
+                                                {% if student.photo %}
+                                                    <img src="{{ student.photo.url }}" alt="{{ student.full_name }}" 
+                                                         class="img-fluid rounded-circle">
+                                                {% else %}
+                                                    <img src="https://via.placeholder.com/80/2c3e50/ffffff?text={{ student.full_name|first|upper }}" 
+                                                         alt="{{ student.full_name }}" class="img-fluid rounded-circle">
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-8">
+                                                <h5 class="mb-1">{{ student.full_name }}</h5>
+                                                <p class="text-muted mb-1">
+                                                    <i class="fas fa-users"></i> {{ student.group }}
+                                                </p>
+                                                <p class="mb-0">
+                                                    {% with session=student.get_active_session %}
+                                                        {% if session.computer_number %}
+                                                            <i class="fas fa-desktop"></i> {{ session.computer_number }}
+                                                        {% endif %}
+                                                    {% endwith %}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-light">
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock"></i> Начало работы: 
+                                            {{ student.get_active_session.start_time|time:"H:i" }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-user-slash fa-4x text-muted mb-3"></i>
+                        <h4>Сейчас никто не работает</h4>
+                        <p class="text-muted">Все компьютеры свободны</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Компьютерные станции -->
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0"><i class="fas fa-desktop"></i> Компьютерные станции</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Комната</th>
+                                <th>Номер ПК</th>
+                                <th>Статус</th>
+                                <th>Текущий студент</th>
+                                <th>Последнее использование</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for station in occupied_stations %}
+                                <tr class="table-warning">
+                                    <td>
+                                        <i class="fas fa-door-open"></i> {{ station.room }}
+                                        ({{ station.room_number }})
+                                    </td>
+                                    <td>{{ station.room_number }}</td>
+                                    <td>
+                                        <span class="badge bg-warning">Занят</span>
+                                    </td>
+                                    <td>
+                                        {% if station.current_student %}
+                                            <strong>{{ station.current_student.full_name }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ station.current_student.group }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if station.last_used %}
+                                            {{ station.last_used|timesince }} назад
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            
+                            <!-- Свободные станции -->
+                            {% for station in available_stations %}
+                                <tr class="table-success">
+                                    <td>
+                                        <i class="fas fa-door-closed"></i> {{ station.room }}
+                                        ({{ station.room_number }})
+                                    </td>
+                                    <td>{{ station.room_number }}</td>
+                                    <td>
+                                        <span class="badge bg-success">Свободен</span>
+                                    </td>
+                                    <td class="text-muted">-</td>
+                                    <td>
+                                        {% if station.last_used %}
+                                            {{ station.last_used|timesince }} назад
+                                        {% else %}
+                                            Не использовался
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Легенда -->
+                <div class="mt-4">
+                    <h6><i class="fas fa-info-circle"></i> Легенда статусов:</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-success p-2">
+                            <i class="fas fa-check-circle"></i> Свободен
+                        </span>
+                        <span class="badge bg-warning p-2">
+                            <i class="fas fa-user-clock"></i> Занят
+                        </span>
+                        <span class="badge bg-secondary p-2">
+                            <i class="fas fa-tools"></i> На обслуживании
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer text-center">
+                <small class="text-muted">
+                    Страница обновляется автоматически каждые 30 секунд
+                    <span id="refreshCountdown" class="badge bg-info ms-2">30</span>
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Автообновление страницы каждые 30 секунд
+    let countdown = 30;
+    const countdownElement = document.getElementById('refreshCountdown');
+    
+    const countdownInterval = setInterval(function() {
+        countdown--;
+        countdownElement.textContent = countdown;
+        
+        if (countdown <= 0) {
+            clearInterval(countdownInterval);
+            location.reload();
+        }
+    }, 1000);
+    
+    // Можно добавить ручное обновление
+    document.getElementById('manualRefresh').addEventListener('click', function() {
+        location.reload();
+    });
+</script>
+{% endblock %}
+{% endblock %}
