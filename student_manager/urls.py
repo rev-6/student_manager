@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.urls import path
-from app.views import main, admin_student_list, student_registration, public_working_students
+from app.views import main, admin_student_list, admin_message_list, student_registration, public_working_students
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
@@ -12,4 +12,5 @@ urlpatterns = [
     path('public/', public_working_students, name='public_working'),
 
     path('admin/students/', admin_student_list, name='admin_student_list'),
+    path('admin/messages/', admin_message_list, name='admin_message_list'),
 ]

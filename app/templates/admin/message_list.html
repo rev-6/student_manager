@@ -1,0 +1,261 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Сообщения от студентов{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>
+        <i class="fas fa-envelope"></i> Сообщения от студентов
+        {% if unread_count > 0 %}
+            <span class="badge bg-danger ms-2">{{ unread_count }} непрочитанных</span>
+        {% endif %}
+    </h1>
+</div>
+
+<!-- Фильтры -->
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0"><i class="fas fa-filter"></i> Фильтры</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Тип сообщения</label>
+                <select name="type" class="form-select">
+                    <option value="">Все типы</option>
+                    <option value="question" {% if type_filter == 'question' %}selected{% endif %}>Вопрос</option>
+                    <option value="problem" {% if type_filter == 'problem' %}selected{% endif %}>Проблема</option>
+                    <option value="suggestion" {% if type_filter == 'suggestion' %}selected{% endif %}>Предложение</option>
+                    <option value="other" {% if type_filter == 'other' %}selected{% endif %}>Другое</option>
+                </select>
+            </div>
+            
+            <div class="col-md-4">
+                <label class="form-label">Статус прочтения</label>
+                <select name="read" class="form-select">
+                    <option value="">Все</option>
+                    <option value="unread" {% if read_filter == 'unread' %}selected{% endif %}>Непрочитанные</option>
+                    <option value="read" {% if read_filter == 'read' %}selected{% endif %}>Прочитанные</option>
+                </select>
+            </div>
+            
+            <div class="col-md-4">
+                <label class="form-label">Поиск</label>
+                <div class="input-group">
+                    <input type="text" name="q" class="form-control" placeholder="Поиск по теме или содержимому..." 
+                           value="{{ search_query|default:'' }}">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="col-12">
+                <div class="d-flex justify-content-between">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter"></i> Применить фильтры
+                    </button>
+                    <a href="{% url 'admin_message_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Сбросить
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Список сообщений -->
+<div class="card">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-list"></i> Список сообщений</h5>
+        <div>
+            <form method="POST" action="{% url 'mark_all_read' %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-light">
+                    <i class="fas fa-check-double"></i> Прочитать все
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="list-group list-group-flush">
+        {% for message in messages %}
+            <a href="{% url 'admin_message_detail' message.id %}" 
+               class="list-group-item list-group-item-action {% if not message.is_read %}message-unread{% endif %}">
+                <div class="row align-items-center">
+                    <div class="col-md-1 text-center">
+                        {% if message.is_read %}
+                            <i class="fas fa-envelope-open text-muted fa-2x"></i>
+                        {% else %}
+                            <i class="fas fa-envelope text-warning fa-2x"></i>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-7">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ message.subject }}</h6>
+                            <small class="text-muted">{{ message.sent_at|timesince }} назад</small>
+                        </div>
+                        
+                        <p class="mb-1 text-muted">
+                            {{ message.content|truncatechars:150 }}
+                        </p>
+                        
+                        <small>
+                            <span class="badge bg-{% if message.message_type == 'question' %}info{% elif message.message_type == 'problem' %}danger{% elif message.message_type == 'suggestion' %}success{% else %}secondary{% endif %}">
+                                {{ message.get_message_type_display }}
+                            </span>
+                        </small>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center">
+                            {% if message.student.photo %}
+                                <img src="{{ message.student.photo.url }}" alt="{{ message.student.full_name }}" 
+                                     class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                            {% else %}
+                                <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" 
+                                     style="width: 40px; height: 40px;">
+                                    {{ message.student.full_name|first|upper }}
+                                </div>
+                            {% endif %}
+                            
+                            <div>
+                                <strong>{{ message.student.full_name }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    {{ message.student.group }} | {{ message.student.email }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if message.response %}
+                    <div class="mt-2 p-2 bg-light rounded">
+                        <small class="text-success">
+                            <i class="fas fa-reply"></i> <strong>Ответ:</strong> 
+                            {{ message.response|truncatechars:100 }}
+                            {% if message.admin %}
+                                ({{ message.admin.get_full_name }}, {{ message.responded_at|date:"d.m.Y H:i" }})
+                            {% endif %}
+                        </small>
+                    </div>
+                {% endif %}
+            </a>
+        {% empty %}
+            <div class="list-group-item text-center py-5">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <h5>Сообщений нет</h5>
+                <p class="text-muted">Нет сообщений, соответствующих выбранным фильтрам</p>
+            </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Пагинация -->
+    {% if messages.has_other_pages %}
+    <div class="card-footer">
+        <nav aria-label="Навигация по страницам">
+            <ul class="pagination justify-content-center mb-0">
+                {% if messages.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ messages.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                    </li>
+                {% endif %}
+                
+                {% for i in messages.paginator.page_range %}
+                    {% if messages.number == i %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ i }}</span>
+                        </li>
+                    {% elif i > messages.number|add:'-3' and i < messages.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ i }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                {{ i }}
+                            </a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if messages.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ messages.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Статистика по сообщениям -->
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="h4 mb-0">{{ messages|length }}</div>
+                        <div>Показано</div>
+                    </div>
+                    <i class="fas fa-envelope fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="h4 mb-0">{{ unread_count }}</div>
+                        <div>Непрочитанных</div>
+                    </div>
+                    <i class="fas fa-envelope-open-text fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="h4 mb-0">{{ responded_count }}</div>
+                        <div>С ответом</div>
+                    </div>
+                    <i class="fas fa-reply fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="h4 mb-0">{{ today_count }}</div>
+                        <div>Сегодня</div>
+                    </div>
+                    <i class="fas fa-calendar-day fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

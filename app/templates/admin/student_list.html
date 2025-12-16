@@ -1,0 +1,331 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Управление студентами{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-users"></i> Управление студентами</h1>
+    <a href="{% url 'admin_student_create' %}" class="btn btn-success">
+        <i class="fas fa-user-plus"></i> Добавить студента
+    </a>
+</div>
+
+<!-- Фильтры и поиск -->
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0"><i class="fas fa-filter"></i> Фильтры и поиск</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Статус</label>
+                <select name="status" class="form-select">
+                    <option value="">Все статусы</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Активный</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Неактивный</option>
+                    <option value="graduated" {% if status_filter == 'graduated' %}selected{% endif %}>Выпустился</option>
+                    <option value="expelled" {% if status_filter == 'expelled' %}selected{% endif %}>Отчислен</option>
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label">Группа</label>
+                <input type="text" name="group" class="form-control" placeholder="Например: ПИ-101" 
+                       value="{{ group_filter|default:'' }}">
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label">Сортировка</label>
+                <select name="sort" class="form-select">
+                    <option value="-registration_date" {% if sort_by == '-registration_date' %}selected{% endif %}>Новые сначала</option>
+                    <option value="registration_date" {% if sort_by == 'registration_date' %}selected{% endif %}>Старые сначала</option>
+                    <option value="full_name" {% if sort_by == 'full_name' %}selected{% endif %}>По имени (А-Я)</option>
+                    <option value="-full_name" {% if sort_by == '-full_name' %}selected{% endif %}>По имени (Я-А)</option>
+                    <option value="group" {% if sort_by == 'group' %}selected{% endif %}>По группе</option>
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label">Поиск</label>
+                <div class="input-group">
+                    <input type="text" name="q" class="form-control" placeholder="Поиск..." 
+                           value="{{ search_query|default:'' }}">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="col-12">
+                <div class="d-flex justify-content-between">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter"></i> Применить фильтры
+                    </button>
+                    <a href="{% url 'admin_student_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Сбросить
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Статистика -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="h4 mb-0">{{ total_students }}</div>
+                        <div>Всего студентов</div>
+                    </div>
+                    <i class="fas fa-users fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="h4 mb-0">{{ active_students }}</div>
+                        <div>Активных</div>
+                    </div>
+                    <i class="fas fa-user-check fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="h4 mb-0">{{ working_now }}</div>
+                        <div>Работают сейчас</div>
+                    </div>
+                    <i class="fas fa-laptop-code fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="h4 mb-0">{{ students|length }}</div>
+                        <div>Показано</div>
+                    </div>
+                    <i class="fas fa-chart-bar fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Таблица студентов -->
+<div class="card">
+    <div class="card-header bg-dark text-white">
+        <h5 class="mb-0"><i class="fas fa-list"></i> Список студентов</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Фото</th>
+                        <th>Данные студента</th>
+                        <th>Контакты</th>
+                        <th>Статус</th>
+                        <th>Активность</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                        <tr {% if student.is_currently_working %}class="table-success"{% endif %}>
+                            <td class="text-center">
+                                {% if student.photo %}
+                                    <img src="{{ student.photo.url }}" alt="{{ student.full_name }}" 
+                                         class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">
+                                {% else %}
+                                    <div class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center" 
+                                         style="width: 50px; height: 50px;">
+                                        {{ student.full_name|first|upper }}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ student.full_name }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    <i class="fas fa-id-card"></i> {{ student.student_id }}
+                                    | <i class="fas fa-users"></i> {{ student.group }}
+                                </small>
+                                <br>
+                                <small>
+                                    Зарегистрирован: {{ student.registration_date|date:"d.m.Y" }}
+                                </small>
+                            </td>
+                            <td>
+                                <i class="fas fa-envelope"></i> {{ student.email }}
+                                <br>
+                                {% if student.phone %}
+                                    <i class="fas fa-phone"></i> {{ student.phone }}
+                                {% else %}
+                                    <span class="text-muted">Телефон не указан</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if student.status == 'active' %}
+                                    <span class="badge bg-success">{{ student.get_status_display }}</span>
+                                {% elif student.status == 'inactive' %}
+                                    <span class="badge bg-secondary">{{ student.get_status_display }}</span>
+                                {% elif student.status == 'graduated' %}
+                                    <span class="badge bg-info">{{ student.get_status_display }}</span>
+                                {% elif student.status == 'expelled' %}
+                                    <span class="badge bg-danger">{{ student.get_status_display }}</span>
+                                {% endif %}
+                                
+                                {% if student.is_currently_working %}
+                                    <br>
+                                    <span class="badge bg-warning mt-1">
+                                        <i class="fas fa-play-circle"></i> Работает сейчас
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                Последняя активность:
+                                <br>
+                                {% if student.last_activity %}
+                                    <small class="text-muted">{{ student.last_activity|timesince }} назад</small>
+                                {% else %}
+                                    <small class="text-muted">Нет данных</small>
+                                {% endif %}
+                                
+                                <br>
+                                <small>
+                                    Всего часов: {{ student.total_work_hours|default:"0" }}
+                                </small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'admin_student_edit' student.id %}" 
+                                       class="btn btn-outline-primary" title="Редактировать">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="#" class="btn btn-outline-info" title="Просмотреть">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'admin_student_delete' student.id %}" 
+                                       class="btn btn-outline-danger confirm-delete" title="Удалить">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                                
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        {% if student.redmine_id %}
+                                            <i class="fab fa-gitlab text-danger" title="Redmine"></i>
+                                        {% endif %}
+                                        {% if student.gitlab_id %}
+                                            <i class="fab fa-gitlab text-warning" title="GitLab"></i>
+                                        {% endif %}
+                                        {% if student.github_id %}
+                                            <i class="fab fa-github" title="GitHub"></i>
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
+                                <h5>Студенты не найдены</h5>
+                                <p class="text-muted">Попробуйте изменить параметры поиска</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Пагинация -->
+    {% if students.has_other_pages %}
+    <div class="card-footer">
+        <nav aria-label="Навигация по страницам">
+            <ul class="pagination justify-content-center mb-0">
+                {% if students.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ students.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                    </li>
+                {% endif %}
+                
+                {% for i in students.paginator.page_range %}
+                    {% if students.number == i %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ i }}</span>
+                        </li>
+                    {% elif i > students.number|add:'-3' and i < students.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ i }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                {{ i }}
+                            </a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if students.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ students.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Экспорт данных -->
+<div class="card mt-4">
+    <div class="card-body text-center">
+        <h5><i class="fas fa-file-export"></i> Экспорт данных</h5>
+        <p class="text-muted">Вы можете экспортировать список студентов в различных форматах</p>
+        
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-primary">
+                <i class="fas fa-file-excel"></i> Excel
+            </button>
+            <button type="button" class="btn btn-outline-success">
+                <i class="fas fa-file-csv"></i> CSV
+            </button>
+            <button type="button" class="btn btn-outline-warning">
+                <i class="fas fa-file-pdf"></i> PDF
+            </button>
+            <button type="button" class="btn btn-outline-info">
+                <i class="fas fa-print"></i> Печать
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}

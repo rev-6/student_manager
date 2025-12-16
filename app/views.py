@@ -229,6 +229,47 @@ def admin_student_list(request): #Список студентов с фильт�
     return render(request, 'admin/student_list.html', context)
 
 
+@admin_required
+def admin_message_list(request):
+    message_list = Message.objects.all().order_by('-sent_at', 'is_read')
+    
+    # Фильтр по типу
+    type_filter = request.GET.get('type')
+    if type_filter:
+        message_list = message_list.filter(message_type=type_filter)
+    
+    # Фильтр по статусу прочтения
+    read_filter = request.GET.get('read')
+    if read_filter == 'unread':
+        message_list = message_list.filter(is_read=False)
+    elif read_filter == 'read':
+        message_list = message_list.filter(is_read=True)
+    
+    # Поиск
+    search_query = request.GET.get('q')
+    if search_query:
+        message_list = message_list.filter(
+            Q(subject__icontains=search_query) |
+            Q(content__icontains=search_query) |
+            Q(student__full_name__icontains=search_query)
+        )
+    
+    # Пагинация
+    paginator = Paginator(message_list, 20)
+    page = request.GET.get('page')
+    messages_page = paginator.get_page(page)
+    
+    # Статистика
+    unread_count = Message.objects.filter(is_read=False).count()
+    
+    context = {
+        'messages': messages_page,
+        'unread_count': unread_count,
+        'type_filter': type_filter,
+        'read_filter': read_filter,
+        'search_query': search_query,
+    }
+    return render(request, 'admin/message_list.html', context)
 
 #def admin_student_create(request): 
 #    if request.method == 'POST':
