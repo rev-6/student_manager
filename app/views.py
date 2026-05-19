@@ -10,8 +10,9 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.contrib import messages
+from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q, Count
-from app.models import *
+from .models import *
 import datetime
 
 def main(request):
@@ -50,6 +51,7 @@ def main(request):
     
     return render(request, 'Main.html', context)
 
+@csrf_exempt
 def student_registration(request):
     if request.user.is_authenticated:
         messages.info(request, 'Вы уже авторизованы в системе.')
@@ -144,6 +146,68 @@ class CustomLoginView(LoginView):
             except:
                 return '/'
 
+@login_required
+def dashboard(request):
+    """Функция для отображения панели студента с данными из БД"""
+    
+    student = get_object_or_404(Student, user=request.user)
+    
+    # Получаем рабочее время за сегодня
+    from datetime import date
+    today = date.today()
+    today_sessions = WorkSession.objects.filter(
+        student=student,
+        start_time__date=today
+    )
+    
+    # Считаем общее время работы сегодня
+    today_hours = 0
+    for session in today_sessions:
+        if session.end_time:
+            duration = (session.end_time - session.start_time).total_seconds() / 3600
+            today_hours += duration
+    
+    # Получаем статус (работает сейчас или нет)
+    current_session = WorkSession.objects.filter(
+        student=student,
+        end_time__isnull=True
+    ).first()
+    
+    status = 'Работает сейчас' if current_session else 'Не работает'
+    
+    # Получаем сообщения для студента
+    messages = Message.objects.filter(
+        student=student,
+        is_read=False
+    ).order_by('-sent_at')[:5]
+    
+    # Формируем контекст
+    context = {
+        'student': student,
+        'student_name': student.full_name,
+        'student_email': student.email,
+        'student_group': student.group,
+        'student_photo': student.photo.url if student.photo else None,
+        'status': status,
+        # 'work_hours_today': f'{today_hours:.1f} часов',
+        # 'work_hours_total': f'{student.total_work_hours:.1f} часов',
+        'unread_messages': messages,
+        'messages_count': messages.count(),
+    }
+    
+    return render(request, 'student/dashboard.html', context)
+
+@login_required
+def student_message_list(request):
+    student = get_object_or_404(Student, user=request.user)
+    message_list = student.messages.all().order_by('-sent_at')
+    
+    context = {
+        'messages': message_list,
+        'unread_count': student.get_unread_messages_count(),
+    }
+    return render(request, 'student/message_list.html', context)
+
 def public_working_students(request):
     working_students = Student.objects.filter(
         work_sessions__is_active=True
@@ -165,9 +229,9 @@ def public_working_students(request):
         'total_working': total_working,
         'total_computers': total_computers,
         'available_computers': available_computers,
-        'current_time': timezone.now(),
+        'current_time': datetime.datetime.now(),
     }
-    return render(request, 'students/public/working_students.html', context)
+    return render(request, 'public/working_students.html', context)
 
 
 def admin_required(view_func): #Декоратор для проверки прав администратора
@@ -292,3 +356,80 @@ def admin_message_list(request):
 #       form = AdminStudentForm()
 #   
 #   return render(request, 'admin/student_form.html', {'form': form, 'action': 'create'})
+
+@admin_required
+def admin_rule_list(request):
+    """Админ: управление правилами"""
+    rules = Rule.objects.all()
+    
+    if request.method == 'POST':
+        # Создание нового правила
+        title = request.POST.get('title')
+        content = request.POST.get('content')
+        category = request.POST.get('category')
+        
+        if title and content:
+            rule = Rule.objects.create(
+                title=title,
+                content=content,
+                category=category,
+                created_by=request.user
+            )
+            messages.success(request, 'Правило создано')
+            return redirect('admin_rule_list')
+    
+    return render(request, 'admin/rule_list.html', {'rules': rules})
+
+@admin_required
+def admin_rule_edit(request, rule_id):
+    """Админ: редактирование правила"""
+    rule = get_object_or_404(Rule, id=rule_id)
+    
+    if request.method == 'POST':
+        rule.title = request.POST.get('title')
+        rule.content = request.POST.get('content')
+        rule.category = request.POST.get('category')
+        rule.version += 1  # Увеличиваем версию при редактировании
+        rule.save()
+        
+        messages.success(request, 'Правило обновлено')
+        return redirect('admin_rule_list')
+    
+    return render(request, 'admin/rule_edit.html', {'rule': rule})
+
+@login_required
+def view_rules(request):
+    """Студент: просмотр правил"""
+    rules = Rule.objects.filter(is_active=True)
+    student = get_object_or_404(Student, user=request.user)
+    
+    # Проверяем, какие правила уже приняты
+    accepted_rule_ids = RuleAcceptance.objects.filter(
+        student=student
+    ).values_list('rule_id', flat=True)
+    
+    context = {
+        'rules': rules,
+        'accepted_rule_ids': list(accepted_rule_ids),
+    }
+    return render(request, 'student/student_rules.html', context)
+
+@login_required
+def accept_rules(request):
+    """Студент: принятие правил"""
+    if request.method == 'POST':
+        student = get_object_or_404(Student, user=request.user)
+        rule_ids = request.POST.getlist('rule_ids')
+        
+        for rule_id in rule_ids:
+            rule = Rule.objects.get(id=rule_id)
+            RuleAcceptance.objects.get_or_create(
+                student=student,
+                rule=rule,
+                defaults={'ip_address': get_client_ip(request)}
+            )
+        
+        messages.success(request, 'Правила приняты')
+        return redirect('dashboard')
+    
+    return redirect('view_rules')
