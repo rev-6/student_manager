@@ -565,7 +565,7 @@ def view_rules(request):
         return redirect('home')
     
     from .models import Rule
-    rules = Rule.objects.filter(is_active=True).order_by('order')
+    rules = Rule.objects.filter(is_active=True).order_by('id')
     
     return render(request, 'student/student_rules.html', {
         'rules': rules,
