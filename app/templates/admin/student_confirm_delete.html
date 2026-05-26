@@ -1,0 +1,46 @@
+﻿{% extends 'admin/base_admin.html' %}
+
+{% block title %}Удаление студента{% endblock %}
+
+{% block admin_content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> Подтверждение удаления
+                    </h4>
+                </div>
+                <div class="card-body text-center">
+                    <i class="fas fa-user-times fa-5x text-danger mb-3"></i>
+                    <h5>Вы уверены, что хотите удалить студента?</h5>
+                    <p class="mb-3">
+                        <strong>{{ student.full_name }}</strong><br>
+                        <span class="text-muted">ID: {{ student.student_id }} | Группа: {{ student.group }}</span>
+                    </p>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle"></i>
+                        Это действие удалит все данные студента, включая:
+                        <ul class="text-start mt-2 mb-0">
+                            <li>Личную информацию</li>
+                            <li>Историю рабочего времени</li>
+                            <li>Сообщения</li>
+                            <li>Учетную запись пользователя</li>
+                        </ul>
+                    </div>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-lg px-4">
+                            <i class="fas fa-trash"></i> Да, удалить
+                        </button>
+                        <a href="{% url 'admin_student_list' %}" class="btn btn-secondary btn-lg px-4 ms-2">
+                            <i class="fas fa-times"></i> Отмена
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

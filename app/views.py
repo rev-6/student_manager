@@ -1,9 +1,10 @@
 from django import forms
-from .forms import StudentRegistrationForm
+from .forms import StudentRegistrationForm, AdminStudentForm, WorkSessionForm
 from django.http import HttpResponse, JsonResponse
 from django.core.paginator import Paginator
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
+from django.utils import timezone
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.forms import AuthenticationForm
@@ -13,7 +14,10 @@ from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q, Count
 from .models import *
+from datetime import timedelta
 import datetime
+import threading
+import time
 
 def main(request):
     try:
@@ -148,65 +152,133 @@ class CustomLoginView(LoginView):
 
 @login_required
 def dashboard(request):
-    """Функция для отображения панели студента с данными из БД"""
+    """Дашборд студента"""
     
-    student = get_object_or_404(Student, user=request.user)
+    # Проверяем наличие профиля студента
+    try:
+        student = Student.objects.get(user=request.user)
+    except Student.DoesNotExist:
+        # Если профиля нет, отправляем на страницу создания профиля
+        messages.warning(request, 'Для доступа к дашборду необходимо создать профиль студента.')
+        
+        # Если пользователь админ - показываем ссылку на создание в админке
+        if request.user.is_staff:
+            messages.info(request, 'Администратор: создайте профиль студента через админ-панель.')
+            return redirect('/admin/app/student/add/')
+        
+        # Для обычных пользователей - показываем форму регистрации студента
+        return redirect('student_registration')  # Используйте ваш URL для регистрации студента
     
-    # Получаем рабочее время за сегодня
-    from datetime import date
-    today = date.today()
-    today_sessions = WorkSession.objects.filter(
-        student=student,
-        start_time__date=today
-    )
-    
-    # Считаем общее время работы сегодня
-    today_hours = 0
-    for session in today_sessions:
-        if session.end_time:
-            duration = (session.end_time - session.start_time).total_seconds() / 3600
-            today_hours += duration
-    
-    # Получаем статус (работает сейчас или нет)
-    current_session = WorkSession.objects.filter(
-        student=student,
-        end_time__isnull=True
-    ).first()
-    
-    status = 'Работает сейчас' if current_session else 'Не работает'
-    
-    # Получаем сообщения для студента
-    messages = Message.objects.filter(
-        student=student,
-        is_read=False
-    ).order_by('-sent_at')[:5]
-    
-    # Формируем контекст
+    # Если профиль есть, показываем дашборд
     context = {
         'student': student,
         'student_name': student.full_name,
         'student_email': student.email,
         'student_group': student.group,
-        'student_photo': student.photo.url if student.photo else None,
-        'status': status,
-        # 'work_hours_today': f'{today_hours:.1f} часов',
-        # 'work_hours_total': f'{student.total_work_hours:.1f} часов',
-        'unread_messages': messages,
-        'messages_count': messages.count(),
+        'student_id': student.student_id,
     }
     
     return render(request, 'student/dashboard.html', context)
 
 @login_required
 def student_message_list(request):
-    student = get_object_or_404(Student, user=request.user)
-    message_list = student.messages.all().order_by('-sent_at')
+    """Список сообщений для студента"""
+    
+    # Проверяем наличие профиля студента
+    try:
+        student = Student.objects.get(user=request.user)
+    except Student.DoesNotExist:
+        messages.error(request, 'Профиль студента не найден. Пожалуйста, обратитесь к администратору.')
+        
+        # Если пользователь админ - перенаправляем в админку
+        if request.user.is_staff:
+            messages.info(request, 'Как администратор, вы можете создать профиль в админ-панели.')
+            return redirect('/admin/app/student/add/')
+        
+        return redirect('home')
+    
+    # Получаем все сообщения студента
+    messages_list = Message.objects.filter(student=student).order_by('-sent_at')
+    
+    # Отмечаем сообщения как прочитанные (опционально)
+    if request.GET.get('mark_read'):
+        unread_messages = messages_list.filter(is_read=False)
+        unread_messages.update(is_read=True)
+        messages.success(request, f'Отмечено {unread_messages.count()} сообщений как прочитанные')
+        return redirect('student_messages')
+    
+    # Пагинация
+    from django.core.paginator import Paginator
+    paginator = Paginator(messages_list, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     
     context = {
-        'messages': message_list,
-        'unread_count': student.get_unread_messages_count(),
+        'student': student,
+        'messages': page_obj,
+        'page_obj': page_obj,
+        'unread_count': messages_list.filter(is_read=False).count(),
     }
     return render(request, 'student/message_list.html', context)
+
+@login_required
+def start_work_session(request):
+    """Начать рабочую сессию"""
+    student = get_object_or_404(Student, user=request.user)
+    
+    # Проверяем, нет ли активной сессии
+    active_session = student.get_active_session()
+    if active_session:
+        messages.warning(request, 'У вас уже есть активная рабочая сессия')
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        form = WorkSessionForm(request.POST)
+        if form.is_valid():
+            # Создаем новую сессию
+            session = WorkSession.objects.create(
+                student=student,
+                start_time=timezone.now(),
+                computer_number=form.cleaned_data['computer_number'],
+                is_active=True
+            )
+            
+            # Запускаем таймер авто-выключения (8 часов)
+            auto_stop_time = timezone.now() + timedelta(hours=8)
+            # В реальном проекте здесь будет Celery task
+            
+            messages.success(request, f'Рабочая сессия начата в {session.start_time.strftime("%H:%M")}')
+            return redirect('dashboard')
+    else:
+        form = WorkSessionForm()
+    
+    return render(request, 'students/student/start_session.html', {'form': form})
+
+@login_required
+def stop_work_session(request):
+    """Завершить рабочую сессию"""
+    student = get_object_or_404(Student, user=request.user)
+    active_session = student.get_active_session()
+    
+    if not active_session:
+        messages.error(request, 'Нет активной рабочей сессии')
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        active_session.end_time = timezone.now()
+        active_session.is_active = False
+        active_session.save()
+        
+        duration_hours = active_session.duration_minutes / 60
+        messages.success(request, 
+            f'Сессия завершена. Время работы: {duration_hours:.2f} часов')
+        return redirect('dashboard')
+    
+    return render(request, 'students/student/stop_session.html', {
+        'session': active_session,
+        'current_time': timezone.now()
+    })
+
 
 def public_working_students(request):
     working_students = Student.objects.filter(
@@ -335,27 +407,112 @@ def admin_message_list(request):
     }
     return render(request, 'admin/message_list.html', context)
 
-#def admin_student_create(request): 
-#    if request.method == 'POST':
-#        form = AdminStudentForm(request.POST, request.FILES)
-#        if form.is_valid():
-#            user = User.objects.create_user(
-#                username=form.cleaned_data['email'],
-#                email=form.cleaned_data['email'],
-#                password=form.cleaned_data['password'],
-#                first_name=form.cleaned_data['first_name'],
-#                last_name=form.cleaned_data['last_name'])
-#           
-#            student = form.save(commit=False)
-#            student.user = user
-#           student.save()
-#           
-#           messages.success(request, f'Студент {student.full_name} успешно')
-#           return redirect('admin_student_list')
-#   else:
-#       form = AdminStudentForm()
-#   
-#   return render(request, 'admin/student_form.html', {'form': form, 'action': 'create'})
+@admin_required
+def admin_student_create(request): 
+    if request.method == 'POST':
+        form = AdminStudentForm(request.POST, request.FILES)
+        if form.is_valid():
+            user = User.objects.create_user(
+                username=form.cleaned_data['email'],
+                email=form.cleaned_data['email'],
+                password=form.cleaned_data['password'],
+                first_name=form.cleaned_data['first_name'],
+                last_name=form.cleaned_data['last_name'])
+           
+            student = form.save(commit=False)
+            student.user = user
+            student.save()
+
+            messages.success(request, f'Студент {student.full_name} успешно')
+            return redirect('admin_student_list')
+    else:
+        form = AdminStudentForm()
+   
+    return render(request, 'admin/student_form.html', {'form': form, 'action': 'create'})
+
+@admin_required
+def admin_student_edit(request, pk):
+    """Редактирование студента администратором"""
+    
+    # Получаем студента или 404
+    student = get_object_or_404(Student, id=pk)
+    
+    if request.method == 'POST':
+        form = AdminStudentForm(request.POST, request.FILES, instance=student)
+        
+        if form.is_valid():
+            # Обновляем данные пользователя
+            user = student.user
+            user.first_name = form.cleaned_data['first_name']
+            user.last_name = form.cleaned_data['last_name']
+            user.email = form.cleaned_data['email']
+            user.username = form.cleaned_data['email']  # Обновляем username тоже
+            
+            # Если указан новый пароль
+            password = form.cleaned_data.get('password')
+            if password:
+                user.set_password(password)
+            
+            user.save()
+            
+            # Сохраняем студента
+            student = form.save(commit=False)
+            student.user = user
+            student.full_name = f"{user.first_name} {user.last_name}"
+            student.email = user.email
+            student.save()
+            
+            messages.success(request, f'Студент "{student.full_name}" успешно обновлен!')
+            return redirect('admin_student_list')
+        else:
+            messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
+    else:
+        # GET запрос - заполняем форму данными студента
+        initial_data = {
+            'first_name': student.user.first_name if student.user else '',
+            'last_name': student.user.last_name if student.user else '',
+            'email': student.email,
+            'student_id': student.student_id,
+            'phone': student.phone,
+            'group': student.group,
+            'redmine_id': student.redmine_id,
+            'gitlab_id': student.gitlab_id,
+        }
+        form = AdminStudentForm(initial=initial_data, instance=student)
+    
+    context = {
+        'form': form,
+        'student': student,
+        'action': 'edit',
+        'page_title': f'Редактирование студента: {student.full_name}'
+    }
+    
+    return render(request, 'admin/student_form.html', context)
+
+@admin_required
+def admin_student_delete(request, pk):
+    """Удаление студента администратором"""
+    
+    student = get_object_or_404(Student, id=pk)
+    student_name = student.full_name
+    
+    if request.method == 'POST':
+        # Удаляем связанного пользователя
+        user = student.user
+        student.delete()
+        
+        if user:
+            user.delete()
+        
+        messages.success(request, f'Студент "{student_name}" успешно удален!')
+        return redirect('admin_student_list')
+    
+    context = {
+        'student': student,
+        'student_name': student_name,
+    }
+    
+    return render(request, 'admin/student_confirm_delete.html', context)
 
 @admin_required
 def admin_rule_list(request):
@@ -399,37 +556,50 @@ def admin_rule_edit(request, rule_id):
 
 @login_required
 def view_rules(request):
-    """Студент: просмотр правил"""
-    rules = Rule.objects.filter(is_active=True)
-    student = get_object_or_404(Student, user=request.user)
+    """Просмотр правил студентом"""
     
-    # Проверяем, какие правила уже приняты
-    accepted_rule_ids = RuleAcceptance.objects.filter(
-        student=student
-    ).values_list('rule_id', flat=True)
+    try:
+        student = Student.objects.get(user=request.user)
+    except Student.DoesNotExist:
+        messages.error(request, 'Профиль студента не найден')
+        return redirect('home')
     
-    context = {
+    from .models import Rule
+    rules = Rule.objects.filter(is_active=True).order_by('order')
+    
+    return render(request, 'student/student_rules.html', {
         'rules': rules,
-        'accepted_rule_ids': list(accepted_rule_ids),
-    }
-    return render(request, 'student/student_rules.html', context)
+        'student': student
+    })
+
 
 @login_required
-def accept_rules(request):
-    """Студент: принятие правил"""
-    if request.method == 'POST':
-        student = get_object_or_404(Student, user=request.user)
-        rule_ids = request.POST.getlist('rule_ids')
-        
-        for rule_id in rule_ids:
-            rule = Rule.objects.get(id=rule_id)
-            RuleAcceptance.objects.get_or_create(
-                student=student,
-                rule=rule,
-                defaults={'ip_address': get_client_ip(request)}
-            )
-        
-        messages.success(request, 'Правила приняты')
-        return redirect('dashboard')
+def accept_rules(request, rule_id):
+    """Принятие правил студентом"""
+    
+    try:
+        student = Student.objects.get(user=request.user)
+    except Student.DoesNotExist:
+        messages.error(request, 'Профиль студента не найден')
+        return redirect('home')
+    
+    from .models import Rule, RuleAcceptance
+    
+    rule = get_object_or_404(Rule, id=rule_id)
+    
+    # Создаем запись о принятии
+    acceptance, created = RuleAcceptance.objects.get_or_create(
+        student=student,
+        rule=rule,
+        defaults={
+            'accepted_at': timezone.now(),
+            'ip_address': get_client_ip(request),
+        }
+    )
+    
+    if created:
+        messages.success(request, f'Правило "{rule.title}" принято')
+    else:
+        messages.info(request, 'Вы уже приняли это правило')
     
     return redirect('view_rules')

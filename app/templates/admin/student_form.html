@@ -1,0 +1,310 @@
+﻿{% extends 'admin/base_admin.html' %}
+
+{% block title %}
+    {% if action == 'create' %}Создание студента{% else %}Редактирование студента{% endif %}
+{% endblock %}
+
+{% block admin_content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-{% if action == 'create' %}user-plus{% else %}user-edit{% endif %}"></i>
+                        {% if action == 'create' %}Создание нового студента{% else %}Редактирование студента{% endif %}
+                    </h3>
+                </div>
+
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data" id="studentForm">
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <!-- Левая колонка -->
+                            <div class="col-md-6">
+                                <h5 class="border-bottom pb-2 mb-3">
+                                    <i class="fas fa-user"></i> Личная информация
+                                </h5>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                                        {{ form.first_name.label }} *
+                                    </label>
+                                    {{ form.first_name }}
+                                    {% if form.first_name.errors %}
+                                    <div class="text-danger small">{{ form.first_name.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                                        {{ form.last_name.label }} *
+                                    </label>
+                                    {{ form.last_name }}
+                                    {% if form.last_name.errors %}
+                                    <div class="text-danger small">{{ form.last_name.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.student_id.id_for_label }}" class="form-label">
+                                        {{ form.student_id.label }} *
+                                    </label>
+                                    {{ form.student_id }}
+                                    <div class="form-text">Уникальный номер студенческого билета</div>
+                                    {% if form.student_id.errors %}
+                                    <div class="text-danger small">{{ form.student_id.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.email.id_for_label }}" class="form-label">
+                                        {{ form.email.label }} *
+                                    </label>
+                                    {{ form.email }}
+                                    <div class="form-text">Будет использоваться как логин для входа</div>
+                                    {% if form.email.errors %}
+                                    <div class="text-danger small">{{ form.email.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.phone.id_for_label }}" class="form-label">
+                                        {{ form.phone.label }}
+                                    </label>
+                                    {{ form.phone }}
+                                    {% if form.phone.errors %}
+                                    <div class="text-danger small">{{ form.phone.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.group.id_for_label }}" class="form-label">
+                                        {{ form.group.label }} *
+                                    </label>
+                                    {{ form.group }}
+                                    {% if form.group.errors %}
+                                    <div class="text-danger small">{{ form.group.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Правая колонка -->
+                            <div class="col-md-6">
+                                <h5 class="border-bottom pb-2 mb-3">
+                                    <i class="fas fa-lock"></i> Безопасность и интеграции
+                                </h5>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.password.id_for_label }}" class="form-label">
+                                        {{ form.password.label }}
+                                    </label>
+                                    {{ form.password }}
+                                    <div class="form-text">Минимум 6 символов. Оставьте пустым, чтобы не менять пароль</div>
+                                    {% if form.password.errors %}
+                                    <div class="text-danger small">{{ form.password.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.password_confirm.id_for_label }}" class="form-label">
+                                        {{ form.password_confirm.label }}
+                                    </label>
+                                    {{ form.password_confirm }}
+                                    {% if form.password_confirm.errors %}
+                                    <div class="text-danger small">{{ form.password_confirm.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <hr>
+
+                                <h5 class="border-bottom pb-2 mb-3">
+                                    <i class="fab fa-gitlab"></i> Внешние системы
+                                </h5>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.redmine_id.id_for_label }}" class="form-label">
+                                        {{ form.redmine_id.label }}
+                                    </label>
+                                    {{ form.redmine_id }}
+                                    <div class="form-text">ID пользователя в Redmine</div>
+                                    {% if form.redmine_id.errors %}
+                                    <div class="text-danger small">{{ form.redmine_id.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.gitlab_id.id_for_label }}" class="form-label">
+                                        {{ form.gitlab_id.label }}
+                                    </label>
+                                    {{ form.gitlab_id }}
+                                    <div class="form-text">Имя пользователя в GitLab</div>
+                                    {% if form.gitlab_id.errors %}
+                                    <div class="text-danger small">{{ form.gitlab_id.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <hr>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.photo.id_for_label }}" class="form-label">
+                                        {{ form.photo.label }}
+                                    </label>
+                                    {{ form.photo }}
+                                    <div class="form-text">Рекомендуемый размер: 300x300px, формат: JPG, PNG</div>
+                                    {% if form.photo.errors %}
+                                    <div class="text-danger small">{{ form.photo.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Предпросмотр фото -->
+                                <div class="mb-3 text-center">
+                                    <img id="photoPreview"
+                                         src="{% if student.photo %}{{ student.photo.url }}{% else %}https://via.placeholder.com/150/cccccc/333?text=Фото{% endif %}"
+                                         alt="Предпросмотр"
+                                         class="img-thumbnail rounded-circle"
+                                         style="width: 150px; height: 150px; object-fit: cover;">
+                                </div>
+                                {% if action == 'edit' and student.photo %}
+                                <div class="alert alert-info mt-2">
+                                    <small>
+                                        <i class="fas fa-info-circle"></i>
+                                        Текущее фото: {{ student.photo.name|cut:"students_photos/" }}
+                                    </small>
+                                </div>
+                                {% endif %}
+                                {% if action == 'edit' %}
+                                <div class="alert alert-secondary mt-3">
+                                    <small>
+                                        <i class="fas fa-id-card"></i>
+                                        Студент создан: {{ student.created_at|date:"d.m.Y H:i" }}
+                                    </small>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Кнопки действий -->
+                        <div class="row mt-4">
+                            <div class="col-12 text-center">
+                                <button type="submit" class="btn btn-success btn-lg px-5">
+                                    <i class="fas fa-save"></i>
+                                    {% if action == 'create' %}Создать студента{% else %}Сохранить изменения{% endif %}
+                                </button>
+                                <a href="{% url 'admin_student_list' %}" class="btn btn-outline-secondary btn-lg ms-2">
+                                    <i class="fas fa-times"></i> Отмена
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Предпросмотр фото
+    const photoInput = document.getElementById('{{ form.photo.id_for_label }}');
+    const photoPreview = document.getElementById('photoPreview');
+
+    if (photoInput) {
+        photoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    photoPreview.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    // Валидация формы
+    document.getElementById('studentForm').addEventListener('submit', function(e) {
+        const password = document.getElementById('{{ form.password.id_for_label }}').value;
+        const passwordConfirm = document.getElementById('{{ form.password_confirm.id_for_label }}').value;
+
+        if (password && password !== passwordConfirm) {
+            e.preventDefault();
+            alert('Пароли не совпадают!');
+            return false;
+        }
+
+        if (password && password.length < 6) {
+            e.preventDefault();
+            alert('Пароль должен содержать минимум 6 символов!');
+            return false;
+        }
+
+        const firstName = document.getElementById('{{ form.first_name.id_for_label }}').value.trim();
+        const lastName = document.getElementById('{{ form.last_name.id_for_label }}').value.trim();
+        const studentId = document.getElementById('{{ form.student_id.id_for_label }}').value.trim();
+        const email = document.getElementById('{{ form.email.id_for_label }}').value.trim();
+        const group = document.getElementById('{{ form.group.id_for_label }}').value.trim();
+
+        if (!firstName) {
+            e.preventDefault();
+            alert('Введите имя студента');
+            return false;
+        }
+
+        if (!lastName) {
+            e.preventDefault();
+            alert('Введите фамилию студента');
+            return false;
+        }
+
+        if (!studentId) {
+            e.preventDefault();
+            alert('Введите номер студенческого');
+            return false;
+        }
+
+        if (!email) {
+            e.preventDefault();
+            alert('Введите email');
+            return false;
+        }
+
+        if (!group) {
+            e.preventDefault();
+            alert('Введите группу');
+            return false;
+        }
+
+        if (password && !passwordConfirm) {
+            e.preventDefault();
+            alert('Подтвердите пароль');
+            return false;
+        }
+    });
+
+    // Генерация email из имени и фамилии
+    function generateEmail() {
+        const firstName = document.getElementById('{{ form.first_name.id_for_label }}').value.trim();
+        const lastName = document.getElementById('{{ form.last_name.id_for_label }}').value.trim();
+        const emailField = document.getElementById('{{ form.email.id_for_label }}');
+
+        if (firstName && lastName && !emailField.value) {
+            const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@university.com`;
+            emailField.value = email;
+        }
+    }
+
+    document.getElementById('{{ form.first_name.id_for_label }}').addEventListener('blur', generateEmail);
+    document.getElementById('{{ form.last_name.id_for_label }}').addEventListener('blur', generateEmail);
+</script>
+{% endblock %}
+{% endblock %}

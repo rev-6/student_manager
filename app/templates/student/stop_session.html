@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+
+{% block title %}Завершение рабочей сессии{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white text-center">
+                <h3 class="mb-0"><i class="fas fa-stop-circle"></i> Завершение рабочей сессии</h3>
+            </div>
+            <div class="card-body">
+                <!-- Информация о текущей сессии -->
+                <div class="alert alert-warning">
+                    <h5><i class="fas fa-exclamation-triangle"></i> Завершение сессии</h5>
+                    <p class="mb-0">
+                        Вы собираетесь завершить текущую рабочую сессию. 
+                        Убедитесь, что сохранили все свои работы.
+                    </p>
+                </div>
+                
+                <!-- Детали сессии -->
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-info-circle"></i> Детали текущей сессии</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Начало работы:</strong></p>
+                                <h4 class="text-primary">
+                                    <i class="fas fa-clock"></i> {{ session.start_time|time:"H:i" }}
+                                </h4>
+                                <small class="text-muted">{{ session.start_time|date:"d.m.Y" }}</small>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <p><strong>Текущее время:</strong></p>
+                                <h4 class="text-success">
+                                    <i class="fas fa-clock"></i> {{ current_time|time:"H:i" }}
+                                </h4>
+                                <small class="text-muted">{{ current_time|date:"d.m.Y" }}</small>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <p><strong>Компьютер:</strong></p>
+                                <div class="h5">
+                                    <i class="fas fa-desktop"></i> 
+                                    {{ session.computer_number|default:"Не указан" }}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <p><strong>Предполагаемая длительность:</strong></p>
+                                <div class="h5" id="calculatedDuration">
+                                    Расчет...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Форма завершения -->
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <!-- Причина завершения (опционально) -->
+                    <div class="mb-4">
+                        <label for="completionReason" class="form-label">
+                            <i class="fas fa-comment-dots"></i> Причина завершения (опционально)
+                        </label>
+                        <select class="form-select" id="completionReason" name="reason">
+                            <option value="">Выберите причину...</option>
+                            <option value="work_completed">Работа завершена</option>
+                            <option value="break">Перерыв</option>
+                            <option value="equipment_issue">Проблема с оборудованием</option>
+                            <option value="personal_reason">Личные причины</option>
+                            <option value="other">Другое</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Комментарий -->
+                    <div class="mb-4">
+                        <label for="completionComment" class="form-label">
+                            <i class="fas fa-sticky-note"></i> Комментарий (опционально)
+                        </label>
+                        <textarea class="form-control" id="completionComment" name="comment" 
+                                  rows="3" placeholder="Оставьте комментарий, если необходимо..."></textarea>
+                    </div>
+                    
+                    <!-- Подтверждение сохранения работ -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-save"></i> Подтверждение сохранения</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="confirmSave" required>
+                                <label class="form-check-label" for="confirmSave">
+                                    Я сохранил(а) все свои работы на внешний носитель или в облако
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="confirmLogout" required>
+                                <label class="form-check-label" for="confirmLogout">
+                                    Я вышел(ла) из всех своих учетных записей на компьютере
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Кнопки -->
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-danger btn-lg py-3">
+                            <i class="fas fa-stop-circle fa-2x me-2"></i>
+                            <span class="fs-4">Завершить рабочую сессию</span>
+                        </button>
+                        
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-arrow-left"></i> Вернуться назад (продолжить работу)
+                        </a>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Статистика -->
+            <div class="card-footer bg-light">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <div class="h5 mb-0">{{ total_sessions }}</div>
+                        <small class="text-muted">Всего сессий</small>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="h5 mb-0">{{ total_hours|floatformat:1 }}</div>
+                        <small class="text-muted">Всего часов</small>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="h5 mb-0">{{ avg_session|floatformat:1 }}</div>
+                        <small class="text-muted">Средняя сессия (ч)</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Советы по завершению работы -->
+        <div class="card mt-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Советы по завершению работы</h5>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li>Убедитесь, что сохранили все открытые документы</li>
+                    <li>Закройте все программы и приложения</li>
+                    <li>Проверьте, не оставили ли флеш-накопители в компьютере</li>
+                    <li>Приведите рабочее место в порядок</li>
+                    <li>Сообщите администратору о неисправностях оборудования</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Расчет длительности сессии
+    function calculateDuration() {
+        const startTime = new Date("{{ session.start_time|date:'c' }}");
+        const now = new Date();
+        const diffMs = now - startTime;
+        
+        const hours = Math.floor(diffMs / 3600000);
+        const minutes = Math.floor((diffMs % 3600000) / 60000);
+        
+        let durationText = '';
+        if (hours > 0) {
+            durationText += `${hours} час${hours > 1 ? 'а' : ''} `;
+        }
+        if (minutes > 0) {
+            durationText += `${minutes} минут${minutes > 1 ? 'ы' : ''}`;
+        }
+        
+        const totalHours = diffMs / 3600000;
+        
+        document.getElementById('calculatedDuration').innerHTML = `
+            <span class="text-primary">${durationText}</span><br>
+            <small class="text-muted">(${totalHours.toFixed(2)} часов)</small>
+        `;
+        
+        // Подсветка в зависимости от длительности
+        if (totalHours > 7.5) {
+            document.getElementById('calculatedDuration').querySelector('.text-primary').className = 'text-danger';
+        } else if (totalHours > 4) {
+            document.getElementById('calculatedDuration').querySelector('.text-primary').className = 'text-warning';
+        }
+    }
+    
+    // Обновляем расчет каждую минуту
+    calculateDuration();
+    setInterval(calculateDuration, 60000);
+    
+    // Предупреждение при попытке уйти со страницы
+    let formSubmitted = false;
+    
+    window.addEventListener('beforeunload', function(e) {
+        if (!formSubmitted) {
+            e.preventDefault();
+            e.returnValue = 'Вы собираетесь покинуть страницу завершения сессии. Убедитесь, что завершили сессию перед уходом.';
+        }
+    });
+    
+    document.querySelector('form').addEventListener('submit', function() {
+        formSubmitted = true;
+    });
+    
+    // Подтверждение при выборе причины "Проблема с оборудованием"
+    document.getElementById('completionReason').addEventListener('change', function() {
+        if (this.value === 'equipment_issue') {
+            if (confirm('Вы выбрали "Проблема с оборудованием". Хотите сразу отправить сообщение администратору?')) {
+                // Можно перенаправить на страницу сообщений
+                window.location.href = "{% url 'student_message_create' %}?type=problem&subject=Проблема с оборудованием";
+            }
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

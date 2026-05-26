@@ -18,11 +18,27 @@ class Student(models.Model):
     group = models.CharField(max_length=50)  # Группа/курс
     redmine_id = models.CharField(max_length=100, blank=True)  # ID в Redmine
     gitlab_id = models.CharField(max_length=100, blank=True)  # ID в GitLab
-    github_id = models.CharField(max_length=100, blank=True)
+    github_id = models.CharField(max_length=100, blank=True)  # ID в GitHub
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     registration_date = models.DateTimeField(auto_now_add=True)
     last_activity = models.DateTimeField(auto_now=True)
     
+    def get_unread_messages_count(self):
+        """Возвращает количество непрочитанных сообщений"""
+        from .models import Message
+        return Message.objects.filter(
+            student=self, 
+            is_read=False
+        ).count()
+    
+    def get_unread_messages(self):
+        """Возвращает список непрочитанных сообщений"""
+        from .models import Message
+        return Message.objects.filter(
+            student=self, 
+            is_read=False
+        ).order_by('-sent_at')
+
     def __str__(self):
         return f"{self.full_name} ({self.student_id})"
 
@@ -92,3 +108,42 @@ class ComputerStation(models.Model):
     
     def __str__(self):
         return f"Комната {self.room_number} ({self.room})"
+
+class Rule(models.Model):
+    RULE_CATEGORIES = [
+        ('general', 'Общие правила'),
+        ('computer', 'Использование ПК'),
+        ('internet', 'Использование интернета'),
+        ('safety', 'Техника безопасности'),
+    ]
+    
+    title = models.CharField(max_length=200, verbose_name='Заголовок')
+    content = models.TextField(verbose_name='Содержание')
+    category = models.CharField(max_length=20, choices=RULE_CATEGORIES, default='general')
+    version = models.IntegerField(default=1, verbose_name='Версия')
+    is_active = models.BooleanField(default=True, verbose_name='Активно')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name='Создал')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
+    
+    class Meta:
+        verbose_name = 'Правило'
+        verbose_name_plural = 'Правила'
+        ordering = ['category', 'title']
+    
+    def __str__(self):
+        return f"{self.title} (v{self.version})"
+
+class RuleAcceptance(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='accepted_rules')
+    rule = models.ForeignKey(Rule, on_delete=models.CASCADE)
+    accepted_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    
+    class Meta:
+        unique_together = ['student', 'rule']
+        verbose_name = 'Принятие правила'
+        verbose_name_plural = 'Принятия правил'
+    
+    def __str__(self):
+        return f"{self.student} accepted {self.rule}"
