@@ -1,0 +1,86 @@
+﻿{% extends 'admin/base_admin.html' %}
+
+{% block title %}Админ-панель{% endblock %}
+
+{% block admin_content %}
+<div class="container mt-4">
+    <h2><i class="fas fa-tachometer-alt"></i> Панель управления</h2>
+
+    <!-- Карточки -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h3>{{ total_students }}</h3>
+                    <p>Студентов</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h3>{{ working_now }}</h3>
+                    <p>Работают сейчас</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h3>{{ unread_messages }}</h3>
+                    <p>Непрочитанных</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h3>{{ active_rules }}</h3>
+                    <p>Активных правил</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Активные сессии -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <i class="fas fa-play"></i> Активные сессии
+        </div>
+        <div class="card-body">
+            {% if active_sessions %}
+            <ul class="list-group">
+                {% for session in active_sessions %}
+                <li class="list-group-item">
+                    {{ session.student.full_name }} - ПК: {{ session.computer_number|default:"—" }}
+                    <small class="text-muted">с {{ session.start_time|date:"H:i" }}</small>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted">Нет активных сессий</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Новые студенты -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <i class="fas fa-user-plus"></i> Новые студенты
+        </div>
+        <div class="card-body">
+            {% if recent_students %}
+            <ul class="list-group">
+                {% for student in recent_students %}
+                <li class="list-group-item">
+                    {{ student.full_name }} - {{ student.group }}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted">Нет студентов</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

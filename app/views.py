@@ -152,8 +152,6 @@ class CustomLoginView(LoginView):
 
 @login_required
 def dashboard(request):
-    """Дашборд студента"""
-    
     # Проверяем наличие профиля студента
     try:
         student = Student.objects.get(user=request.user)
@@ -315,6 +313,20 @@ def admin_required(view_func): #Декоратор для проверки пр�
     )
     return decorated_view_func
 
+@admin_required
+def admin_dashboard(request):
+    """Админ-панель"""
+    
+    context = {
+        'total_students': Student.objects.count(),
+        'working_now': WorkSession.objects.filter(is_active=True).count(),
+        'unread_messages': Message.objects.filter(is_read=False).count(),
+        'active_rules': Rule.objects.filter(is_active=True).count(),
+        'recent_students': Student.objects.all().order_by('-id')[:5],
+        'active_sessions': WorkSession.objects.filter(is_active=True).select_related('student')[:5],
+    }
+    
+    return render(request, 'admin/admin_dashboard.html', context)
 
 @admin_required
 def admin_student_list(request): #Список студентов с фильтрацией и поиском
@@ -364,6 +376,31 @@ def admin_student_list(request): #Список студентов с фильт�
     }
     return render(request, 'admin/student_list.html', context)
 
+@admin_required
+def admin_student(request, pk):
+    """Детальный просмотр студента"""
+    
+    student = get_object_or_404(Student, id=pk)
+    
+    # Получаем сессии студента
+    work_sessions = WorkSession.objects.filter(student=student).order_by('-start_time')[:10]
+    
+    # Получаем сообщения студента
+    messages = Message.objects.filter(student=student).order_by('-sent_at')[:10]
+    
+    # Статистика
+    total_minutes = sum(s.duration_minutes for s in work_sessions.filter(is_active=False))
+    total_hours = total_minutes / 60
+    
+    context = {
+        'student': student,
+        'work_sessions': work_sessions,
+        'messages': messages,
+        'total_hours': round(total_hours, 1),
+        'sessions_count': work_sessions.count(),
+    }
+    
+    return render(request, 'admin/student_view.html', context)
 
 @admin_required
 def admin_message_list(request):
