@@ -1,0 +1,466 @@
+{% extends 'base.html' %}
+
+{% block title %}Личный кабинет{% endblock %}
+
+{% block content %}
+<!-- Приветствие -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-2 text-center">
+                        {% if is_student and profile.photo %}
+                            <img src="{{ profile.photo.url }}" alt="{{ profile.full_name }}" 
+                                 class="student-photo img-thumbnail">
+                        {% else %}
+                            <img src="https://via.placeholder.com/150/2c3e50/ffffff?text={{ user.username|first|upper }}" 
+                                 alt="Аватар" class="student-photo img-thumbnail">
+                        {% endif %}
+                    </div>
+                    <div class="col-md-8">
+                        <h2 class="mb-1">
+                            {% if is_student %}
+                                {{ profile.full_name }}
+                            {% else %}
+                                {{ user.get_full_name|default:user.username }}
+                            {% endif %}
+                        </h2>
+                        <p class="text-muted mb-1">
+                            <i class="fas fa-user-tag"></i>
+                            {% if is_student %}
+                                Студент | Группа: {{ profile.group }}
+                            {% elif is_admin %}
+                                Администратор | Роль: {{ profile.role }}
+                            {% else %}
+                                Пользователь
+                            {% endif %}
+                        </p>
+                        <p class="text-muted mb-0">
+                            <i class="fas fa-envelope"></i> {{ user.email }}
+                            {% if is_student and profile.phone %}
+                                | <i class="fas fa-phone"></i> {{ profile.phone }}
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <span class="badge bg-{% if is_student and profile.status == 'active' %}success{% else %}secondary{% endif %} fs-6 p-2">
+                            {{ profile.get_status_display|default:"Активен" }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if is_student %}
+<!-- ПАНЕЛЬ СТУДЕНТА -->
+<div class="row">
+    <!-- Левая колонка: Рабочая сессия -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-{% if active_session %}warning{% else %}info{% endif %} text-white">
+                <h5 class="mb-0"><i class="fas fa-clock"></i> Рабочее время</h5>
+            </div>
+            <div class="card-body text-center">
+                {% if active_session %}
+                    <div class="alert alert-warning">
+                        <h4><i class="fas fa-play-circle"></i> Сессия активна</h4>
+                        <p class="mb-1">Начало: {{ active_session.start_time|date:"H:i" }}</p>
+                        <p class="mb-3">Компьютер: {{ active_session.computer_number|default:"Не указан" }}</p>
+                        
+                        <!-- Таймер -->
+                        <div id="sessionTimer" class="display-4 mb-3 text-primary">
+                            00:00:00
+                        </div>
+                        
+                        <form method="POST" action="{% url 'stop_session' %}" class="mb-3">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-lg">
+                                <i class="fas fa-stop-circle"></i> Завершить работу
+                            </button>
+                        </form>
+                        
+                        <small class="text-muted">Сессия автоматически завершится через 8 часов</small>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <h4><i class="fas fa-stop-circle"></i> Нет активной сессии</h4>
+                        <p class="mb-4">Начните рабочую сессию для учета времени</p>
+                        
+                        <a href="{% url 'start_session' %}" class="btn btn-success btn-lg">
+                            <i class="fas fa-play-circle"></i> Начать работу
+                        </a>
+                    </div>
+                {% endif %}
+                
+                <!-- Общая статистика -->
+                <div class="mt-4 pt-3 border-top">
+                    <h6><i class="fas fa-chart-line"></i> Статистика</h6>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded">
+                                <div class="h4 mb-0">{{ total_hours|default:"0" }}</div>
+                                <small class="text-muted">Всего часов</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded">
+                                <div class="h4 mb-0">{{ work_sessions|length }}</div>
+                                <small class="text-muted">Сессий</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Быстрые действия -->
+        <div class="card mt-3">
+            <div class="card-header bg-secondary text-white">
+                <h6 class="mb-0"><i class="fas fa-bolt"></i> Быстрые действия</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'student_message_create' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-envelope"></i> Написать администратору
+                    </a>
+                    <a href="{% url 'view_rules' %}" class="btn btn-outline-success">
+                        <i class="fas fa-book"></i> Правила пользования
+                    </a>
+                    <a href="{% url 'student_messages' %}" class="btn btn-outline-warning position-relative">
+                        <i class="fas fa-comments"></i> Мои сообщения
+                        {% if unread_count > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ unread_count }}
+                            </span>
+                        {% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Правая колонка: История сессий -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-history"></i> История рабочих сессий</h5>
+            </div>
+            <div class="card-body">
+                {% if work_sessions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Начало</th>
+                                    <th>Конец</th>
+                                    <th>Длительность</th>
+                                    <th>Компьютер</th>
+                                    <th>Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in work_sessions %}
+                                    <tr>
+                                        <td>{{ session.start_time|date:"d.m.Y" }}</td>
+                                        <td>{{ session.start_time|time:"H:i" }}</td>
+                                        <td>{{ session.end_time|time:"H:i"|default:"-" }}</td>
+                                        <td>
+                                            {% if session.duration_minutes %}
+                                                {{ session.duration_minutes }} мин
+                                                ({{ session.duration_minutes|divisibleby:60|yesno:" ," }}{{ session.duration_minutes|floatformat:1 }} ч)
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ session.computer_number|default:"-" }}</td>
+                                        <td>
+                                            {% if session.is_active %}
+                                                <span class="badge bg-warning">Активна</span>
+                                            {% else %}
+                                                <span class="badge bg-success">Завершена</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if work_sessions|length >= 10 %}
+                        <div class="text-center mt-3">
+                            <a href="#" class="btn btn-outline-primary">
+                                <i class="fas fa-list"></i> Показать все сессии
+                            </a>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-clock fa-4x text-muted mb-3"></i>
+                        <h5>Нет рабочих сессий</h5>
+                        <p class="text-muted">Начните первую рабочую сессию</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Интеграции -->
+        <div class="card mt-3">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-link"></i> Связанные аккаунты</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 border rounded">
+                            <i class="fab fa-gitlab fa-2x mb-2" style="color: #e24329;"></i>
+                            <h6>GitLab</h6>
+                            {% if profile.gitlab_id %}
+                                <span class="badge bg-success">Подключен</span>
+                                <small class="d-block text-muted">ID: {{ profile.gitlab_id }}</small>
+                            {% else %}
+                                <span class="badge bg-secondary">Не подключен</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 border rounded">
+                            <i class="fab fa-github fa-2x mb-2"></i>
+                            <h6>GitHub</h6>
+                            {% if profile.github_id %}
+                                <span class="badge bg-success">Подключен</span>
+                                <small class="d-block text-muted">ID: {{ profile.github_id }}</small>
+                            {% else %}
+                                <span class="badge bg-secondary">Не подключен</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 border rounded">
+                            <i class="fas fa-tasks fa-2x mb-2 text-danger"></i>
+                            <h6>Redmine</h6>
+                            {% if profile.redmine_id %}
+                                <span class="badge bg-success">Подключен</span>
+                                <small class="d-block text-muted">ID: {{ profile.redmine_id }}</small>
+                            {% else %}
+                                <span class="badge bg-secondary">Не подключен</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% elif is_admin %}
+<!-- ПАНЕЛЬ АДМИНИСТРАТОРА -->
+<div class="row">
+    <!-- Статистика -->
+    <div class="col-md-3 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-3x mb-2"></i>
+                <div class="h2 mb-0">{{ total_students }}</div>
+                <div>Всего студентов</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-user-check fa-3x mb-2"></i>
+                <div class="h2 mb-0">{{ active_students }}</div>
+                <div>Активных</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-laptop-code fa-3x mb-2"></i>
+                <div class="h2 mb-0">{{ working_now }}</div>
+                <div>Работают сейчас</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-envelope fa-3x mb-2"></i>
+                <div class="h2 mb-0">{{ unread_messages }}</div>
+                <div>Непрочитанных</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Быстрые действия -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-cogs"></i> Управление системой</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'admin_student_list' %}" class="card text-center h-100 text-decoration-none">
+                            <div class="card-body">
+                                <i class="fas fa-user-plus fa-3x text-primary mb-3"></i>
+                                <h5>Студенты</h5>
+                                <p class="text-muted">Добавление, редактирование, удаление</p>
+                            </div>
+                        </a>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'admin_message_list' %}" class="card text-center h-100 text-decoration-none">
+                            <div class="card-body">
+                                <i class="fas fa-comments fa-3x text-warning mb-3"></i>
+                                <h5>Сообщения</h5>
+                                <p class="text-muted">Просмотр и ответ на сообщения</p>
+                            </div>
+                        </a>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'admin_rule_list' %}" class="card text-center h-100 text-decoration-none">
+                            <div class="card-body">
+                                <i class="fas fa-book fa-3x text-success mb-3"></i>
+                                <h5>Правила</h5>
+                                <p class="text-muted">Управление правилами пользования</p>
+                            </div>
+                        </a>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <a href="/admin/" target="_blank" class="card text-center h-100 text-decoration-none">
+                            <div class="card-body">
+                                <i class="fas fa-tools fa-3x text-danger mb-3"></i>
+                                <h5>Админка Django</h5>
+                                <p class="text-muted">Полный доступ к системе</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Последние активности -->
+<div class="row mt-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-user-clock"></i> Сейчас работают</h5>
+            </div>
+            <div class="card-body">
+                {% with working=students_working_now %}
+                    {% if working %}
+                        <div class="list-group">
+                            {% for student in working|slice:":5" %}
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ student.full_name }}</h6>
+                                        <small>{{ student.group }}</small>
+                                    </div>
+                                    <p class="mb-1">
+                                        <i class="fas fa-desktop"></i> 
+                                        {{ student.get_active_session.computer_number|default:"Компьютер не указан" }}
+                                    </p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        
+                        {% if working|length > 5 %}
+                            <div class="text-center mt-3">
+                                <a href="{% url 'public_working' %}" class="btn btn-outline-info btn-sm">
+                                    Показать всех ({{ working|length }})
+                                </a>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-center text-muted py-3">Сейчас никто не работает</p>
+                    {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-warning text-white">
+                <h5 class="mb-0"><i class="fas fa-exclamation-circle"></i> Непрочитанные сообщения</h5>
+            </div>
+            <div class="card-body">
+                {% with unread=unread_messages_list %}
+                    {% if unread %}
+                        <div class="list-group">
+                            {% for message in unread|slice:":5" %}
+                                <a href="{% url 'admin_message_detail' message.id %}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ message.subject|truncatechars:30 }}</h6>
+                                        <small>{{ message.sent_at|timesince }} назад</small>
+                                    </div>
+                                    <p class="mb-1">{{ message.student.full_name }} ({{ message.student.group }})</p>
+                                    <small class="text-muted">{{ message.get_message_type_display }}</small>
+                                </a>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <a href="{% url 'admin_message_list' %}" class="btn btn-outline-warning btn-sm">
+                                Все сообщения
+                            </a>
+                        </div>
+                    {% else %}
+                        <p class="text-center text-muted py-3">Нет непрочитанных сообщений</p>
+                    {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+{% if is_student and active_session %}
+<script>
+    // Таймер для активной сессии
+    function updateTimer() {
+        const startTime = new Date("{{ active_session.start_time|date:'c' }}");
+        const now = new Date();
+        const diff = now - startTime;
+        
+        const hours = Math.floor(diff / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+        
+        document.getElementById('sessionTimer').textContent = 
+            `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    // Обновляем таймер каждую секунду
+    updateTimer();
+    setInterval(updateTimer, 1000);
+    
+    // Предупреждение за 5 минут до авто-выключения
+    setTimeout(function() {
+        if (confirm('До автоматического завершения сессии осталось 5 минут. Продолжить работу?')) {
+            // Можно отправить AJAX запрос для продления сессии
+            fetch('/api/extend-session/', { method: 'POST' });
+        }
+    }, (8 * 3600 - 5 * 60) * 1000);
+</script>
+{% endif %}
+{% endblock %}

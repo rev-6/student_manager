@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+
+{% block title %}Начать рабочую сессию{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header bg-success text-white text-center">
+                <h3 class="mb-0"><i class="fas fa-play-circle"></i> Начало рабочей сессии</h3>
+            </div>
+            <div class="card-body">
+                <!-- Информация о сессии -->
+                <div class="alert alert-info">
+                    <h5><i class="fas fa-info-circle"></i> Важная информация:</h5>
+                    <ul class="mb-0">
+                        <li>Максимальная длительность сессии - 8 часов</li>
+                        <li>Сессия автоматически завершится по истечении времени</li>
+                        <li>Не забудьте завершить сессию перед уходом</li>
+                        <li>Время работы учитывается для статистики</li>
+                    </ul>
+                </div>
+                
+                <!-- Форма -->
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="id_computer_number" class="form-label">
+                            <i class="fas fa-desktop"></i> Номер компьютера *
+                        </label>
+                        <input type="text" name="computer_number" id="id_computer_number" 
+                               class="form-control form-control-lg" 
+                               placeholder="Например: PC-15 или A-203" required>
+                        <div class="form-text">
+                            Укажите номер компьютера, за которым вы работаете. Это необходимо для учета.
+                        </div>
+                    </div>
+                    
+                    <!-- Выбор аудитории -->
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <i class="fas fa-door-open"></i> Аудитория (опционально)
+                        </label>
+                        <select class="form-select" id="roomSelect">
+                            <option value="">Выберите аудиторию...</option>
+                            <option value="301">301 - Основной компьютерный класс</option>
+                            <option value="302">302 - Мультимедийная лаборатория</option>
+                            <option value="303">303 - Программирование</option>
+                            <option value="304">304 - Графический дизайн</option>
+                            <option value="other">Другая аудитория</option>
+                        </select>
+                        <div class="form-text">
+                            Выбор аудитории поможет администраторам быстрее найти вас при необходимости
+                        </div>
+                    </div>
+                    
+                    <!-- Правила -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-check-circle"></i> Подтверждение</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="confirmEquipment" required>
+                                <label class="form-check-label" for="confirmEquipment">
+                                    Я проверил(а) исправность оборудования (монитор, мышь, клавиатура)
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="confirmRules" required>
+                                <label class="form-check-label" for="confirmRules">
+                                    Я ознакомлен(а) с правилами пользования компьютерным классом
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="confirmResponsibility" required>
+                                <label class="form-check-label" for="confirmResponsibility">
+                                    Я несу ответственность за сохранность оборудования на время сессии
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Таймер предупреждения -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0"><i class="fas fa-clock"></i> Автоматическое завершение</h6>
+                        </div>
+                        <div class="card-body text-center">
+                            <div class="display-4 text-primary mb-2" id="countdownTimer">08:00:00</div>
+                            <p class="text-muted mb-0">
+                                Сессия автоматически завершится через 8 часов
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Кнопки -->
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg py-3">
+                            <i class="fas fa-play-circle fa-2x me-2"></i>
+                            <span class="fs-4">Начать рабочую сессию</span>
+                        </button>
+                        
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-times"></i> Отмена
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Текущие работающие студенты -->
+        <div class="card mt-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-users"></i> Сейчас работают</h5>
+            </div>
+            <div class="card-body">
+                {% if working_students %}
+                    <div class="list-group">
+                        {% for student in working_students|slice:":5" %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ student.full_name }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ student.group }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <small class="text-muted">
+                                            <i class="fas fa-desktop"></i> {{ student.get_active_session.computer_number }}
+                                            <br>
+                                            {{ student.get_active_session.start_time|timesince }} назад
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if working_students|length > 5 %}
+                        <div class="text-center mt-3">
+                            <a href="{% url 'public_working' %}" class="btn btn-sm btn-outline-primary">
+                                Показать всех ({{ working_students|length }})
+                            </a>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <p class="text-center text-muted py-3">
+                        <i class="fas fa-user-slash fa-2x mb-3"></i><br>
+                        Сейчас никто не работает
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Таймер обратного отсчета
+    let totalSeconds = 8 * 3600; // 8 часов в секундах
+    
+    function updateTimer() {
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        
+        document.getElementById('countdownTimer').textContent = 
+            `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Меняем цвет при приближении к концу
+        if (totalSeconds <= 3600) { // 1 час
+            document.getElementById('countdownTimer').className = 'display-4 text-warning mb-2';
+        }
+        if (totalSeconds <= 300) { // 5 минут
+            document.getElementById('countdownTimer').className = 'display-4 text-danger mb-2';
+        }
+        
+        totalSeconds--;
+    }
+    
+    // Запускаем таймер
+    updateTimer();
+    const timerInterval = setInterval(updateTimer, 1000);
+    
+    // Автозаполнение номера компьютера при выборе аудитории
+    document.getElementById('roomSelect').addEventListener('change', function() {
+        const computerInput = document.getElementById('id_computer_number');
+        
+        if (this.value && this.value !== 'other') {
+            // Предлагаем стандартные номера для аудитории
+            computerInput.placeholder = `Например: ${this.value}-01, ${this.value}-15`;
+        }
+    });
+    
+    // Проверка перед отправкой
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const computerNumber = document.getElementById('id_computer_number').value.trim();
+        
+        if (!computerNumber) {
+            e.preventDefault();
+            alert('Пожалуйста, укажите номер компьютера');
+            return false;
+        }
+        
+        if (!confirm('Вы уверены, что хотите начать рабочую сессию?\n\n' +
+                     `Компьютер: ${computerNumber}\n` +
+                     'Время сессии: 8 часов\n\n' +
+                     'Не забудьте завершить сессию перед уходом!')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+    
+    // Остановка таймера при уходе со страницы
+    window.addEventListener('beforeunload', function() {
+        clearInterval(timerInterval);
+    });
+</script>
+{% endblock %}
+{% endblock %}

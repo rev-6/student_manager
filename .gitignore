@@ -6,4 +6,4 @@ venv/
 .directory/
 .pyc
 .vs/
-db.sqlite3
+/app/migrations

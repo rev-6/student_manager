@@ -1,0 +1,82 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}Вход в систему{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0"><i class="fas fa-sign-in-alt"></i> Вход в систему</h3>
+            </div>
+            <div class="card-body">
+                {% if form.errors %}
+                <div class="alert alert-danger">
+                    Неправильное имя пользователя или пароль. Пожалуйста, попробуйте снова.
+                </div>
+                {% endif %}
+
+                <form method="POST">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label">Email</label>
+                        <input type="text" name="username" id="id_username"
+                               class="form-control form-control-lg"
+                               placeholder="Ваш email" required autofocus>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_password" class="form-label">Пароль</label>
+                        <input type="password" name="password" id="id_password"
+                               class="form-control form-control-lg"
+                               placeholder="Ваш пароль" required>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                        <label class="form-check-label" for="remember">Запомнить меня</label>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-sign-in-alt"></i> Войти
+                        </button>
+                    </div>
+                </form>
+
+                <!--** <div class="mt-4 text-center">
+                    <a  class="text-decoration-none">
+                        <i class="fas fa-key"></i> Забыли пароль?
+                    </a>
+                </div> **-->
+            </div>
+            <div class="card-footer text-center">
+                Нет аккаунта? <a href="http://127.0.0.1:8000/register/" class="text-decoration-none">Зарегистрируйтесь</a>
+            </div>
+        </div>
+
+        <!-- Информационные карточки -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-user-graduate fa-2x text-primary mb-2"></i>
+                        <h6>Студент</h6>
+                        <small class="text-muted">Учет рабочего времени, сообщения, правила</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-user-tie fa-2x text-success mb-2"></i>
+                        <h6>Администратор</h6>
+                        <small class="text-muted">Управление студентами, просмотр статистики</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

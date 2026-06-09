@@ -1,0 +1,265 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}
+    {% if rule %}Редактирование правила{% else %}Создание правила{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-{% if rule %}edit{% else %}plus{% endif %}"></i>
+                        {% if rule %}Редактирование правила{% else %}Создание нового правила{% endif %}
+                    </h3>
+                </div>
+
+                <div class="card-body">
+                    <form method="POST" id="ruleForm">
+                        {% csrf_token %}
+
+                        <!-- Основная информация -->
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">Название правила *</label>
+                                    <input type="text" class="form-control" id="title" name="title"
+                                           value="{{ rule.title|default:'' }}" required>
+                                    <div class="form-text">Краткое название правила</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="category" class="form-label">Категория</label>
+                                    <select class="form-select" id="category" name="category">
+                                        <option value="">Выберите категорию</option>
+                                        <option value="Безопасность" {% if rule.category= ='Безопасность' %}selected{% endif %}>
+                                            Безопасность
+                                        </option>
+                                        <option value="Использование ПК" {% if rule.category= ='Использование ПК' %}selected{% endif %}>
+                                            Использование ПК
+                                        </option>
+                                        <option value="Поведение" {% if rule.category= ='Поведение' %}selected{% endif %}>
+                                            Поведение
+                                        </option>
+                                        <option value="Технические" {% if rule.category= ='Технические' %}selected{% endif %}>
+                                            Технические
+                                        </option>
+                                        <option value="Другое" {% if rule.category= ='Другое' %}selected{% endif %}>
+                                            Другое
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Краткое описание *</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" required>{{ rule.description|default:'' }}</textarea>
+                            <div class="form-text">Краткое описание правила (отображается в списке)</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="full_text" class="form-label">Полный текст правила</label>
+                            <textarea class="form-control" id="full_text" name="full_text" rows="8">{{ rule.full_text|default:'' }}</textarea>
+                            <div class="form-text">Подробное описание правила (опционально)</div>
+                        </div>
+
+                        <!-- Дополнительные настройки -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="order" class="form-label">Порядок отображения</label>
+                                    <input type="number" class="form-control" id="order" name="order"
+                                           value="{{ rule.order|default:0 }}" min="0">
+                                    <div class="form-text">Чем меньше число, тем выше в списке</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Статус</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
+                                               {% if rule.is_active or not rule %}checked{% endif %}>
+                                        <label class="form-check-label" for="is_active">
+                                            Правило активно
+                                        </label>
+                                    </div>
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" id="is_required" name="is_required"
+                                               {% if rule.is_required %}checked{% endif %}>
+                                        <label class="form-check-label" for="is_required">
+                                            Обязательное правило (требует подтверждения)
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Предпросмотр -->
+                        <div class="card mt-3">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-eye"></i> Предпросмотр для студентов
+                                </h6>
+                            </div>
+                            <div class="card-body" id="previewArea">
+                                <div class="alert alert-info">
+                                    <strong>Предпросмотр:</strong> Заполните поля выше для просмотра
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Кнопки действий -->
+                        <div class="mt-4 text-center">
+                            <button type="submit" class="btn btn-success btn-lg px-5">
+                                <i class="fas fa-save"></i> {% if rule %}Сохранить{% else %}Создать{% endif %}
+                            </button>
+                            <a href="{% url 'rule_list' %}" class="btn btn-outline-secondary btn-lg ms-2">
+                                <i class="fas fa-times"></i> Отмена
+                            </a>
+                            {% if rule %}
+                            <button type="button" class="btn btn-danger btn-lg ms-2" id="deleteBtn">
+                                <i class="fas fa-trash"></i> Удалить
+                            </button>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно подтверждения удаления -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> Подтверждение удаления
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите удалить правило <strong>"{{ rule.title }}"</strong>?</p>
+                <p class="text-danger">Это действие необратимо!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <form action="{% url 'rule_delete' rule.id %}" method="POST" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Да, удалить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Предпросмотр правила
+    const titleInput = document.getElementById('title');
+    const descriptionInput = document.getElementById('description');
+    const fullTextInput = document.getElementById('full_text');
+    const categorySelect = document.getElementById('category');
+    const isRequiredCheckbox = document.getElementById('is_required');
+    const previewArea = document.getElementById('previewArea');
+
+    function updatePreview() {
+        const title = titleInput.value || 'Заголовок правила';
+        const description = descriptionInput.value || 'Описание будет здесь...';
+        const fullText = fullTextInput.value || '';
+        const category = categorySelect.value || 'Без категории';
+        const isRequired = isRequiredCheckbox.checked;
+
+        previewArea.innerHTML = `
+            <div class="border rounded p-3">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="mb-0">📋 ${escapeHtml(title)}</h5>
+                    ${isRequired ? '<span class="badge bg-danger">Обязательное</span>' : ''}
+                </div>
+                ${category !== 'Без категории' ? `<span class="badge bg-info mb-2">${escapeHtml(category)}</span>` : ''}
+                <p class="mb-2"><strong>Краткое описание:</strong> ${escapeHtml(description)}</p>
+                ${fullText ? `<div class="mt-2"><strong>Полный текст:</strong><div class="border-top mt-1 pt-2">${escapeHtml(fullText)}</div></div>` : ''}
+                <div class="mt-2 text-muted small">
+                    <i class="fas fa-clock"></i> Правило отображается студентам
+                </div>
+            </div>
+        `;
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    titleInput.addEventListener('input', updatePreview);
+    descriptionInput.addEventListener('input', updatePreview);
+    fullTextInput.addEventListener('input', updatePreview);
+    categorySelect.addEventListener('change', updatePreview);
+    isRequiredCheckbox.addEventListener('change', updatePreview);
+
+    // Инициализация предпросмотра
+    updatePreview();
+
+    // Валидация формы
+    document.getElementById('ruleForm').addEventListener('submit', function(e) {
+        const title = titleInput.value.trim();
+        const description = descriptionInput.value.trim();
+
+        if (!title) {
+            e.preventDefault();
+            showNotification('Введите название правила', 'error');
+            titleInput.focus();
+            return false;
+        }
+
+        if (!description) {
+            e.preventDefault();
+            showNotification('Введите краткое описание правила', 'error');
+            descriptionInput.focus();
+            return false;
+        }
+
+        if (title.length < 3) {
+            e.preventDefault();
+            showNotification('Название должно содержать минимум 3 символа', 'error');
+            return false;
+        }
+
+        if (description.length < 10) {
+            e.preventDefault();
+            showNotification('Описание должно содержать минимум 10 символов', 'error');
+            return false;
+        }
+    });
+
+    // Удаление
+    document.getElementById('deleteBtn')?.addEventListener('click', function() {
+        new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    });
+
+    function showNotification(message, type = 'info') {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+        alertDiv.style.top = '20px';
+        alertDiv.style.right = '20px';
+        alertDiv.style.zIndex = '9999';
+        alertDiv.style.minWidth = '300px';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 3000);
+    }
+</script>
+{% endblock %}
+{% endblock %}
