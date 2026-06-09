@@ -277,6 +277,27 @@ def stop_work_session(request):
         'current_time': timezone.now()
     })
 
+@login_required
+def mark_all_read(request):
+    """Отметить все сообщения студента как прочитанные"""
+    
+    try:
+        student = Student.objects.get(user=request.user)
+    except Student.DoesNotExist:
+        messages.error(request, 'Профиль студента не найден')
+        return redirect('home')
+    
+    unread_count = Message.objects.filter(
+        student=student,
+        is_read=False
+    ).update(is_read=True)
+    
+    if unread_count > 0:
+        messages.success(request, f'Отмечено {unread_count} сообщений как прочитанные')
+    else:
+        messages.info(request, 'Нет непрочитанных сообщений')
+    
+    return redirect('student_messages')
 
 def public_working_students(request):
     working_students = Student.objects.filter(
@@ -573,6 +594,31 @@ def admin_rule_list(request):
             return redirect('admin_rule_list')
     
     return render(request, 'admin/rule_list.html', {'rules': rules})
+
+@admin_required
+def admin_rule_create(request):
+    """Создание нового правила"""
+    
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        content = request.POST.get('content')
+        category = request.POST.get('category', '')
+        is_active = request.POST.get('is_active') == 'on'
+        
+        if title and content:
+            rule = Rule.objects.create(
+                title=title,
+                content=content,
+                category=category,
+                is_active=is_active,
+                created_by=request.user
+            )
+            messages.success(request, f'Правило "{rule.title}" успешно создано!')
+            return redirect('admin_rule_list')
+        else:
+            messages.error(request, 'Заполните все обязательные поля')
+    
+    return render(request, 'admin/rule_form.html', {'action': 'create'})
 
 @admin_required
 def admin_rule_edit(request, rule_id):

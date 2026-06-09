@@ -1,0 +1,40 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}{% if action == 'create' %}Создать правило{% else %}Редактировать правило{% endif %}{% endblock %}
+
+{% block admin_content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h4>{% if action == 'create' %}Новое правило{% else %}Редактирование{% endif %}</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label>Название</label>
+                    <input type="text" name="title" class="form-control" required>
+                </div>
+
+                <div class="mb-3">
+                    <label>Категория</label>
+                    <input type="text" name="category" class="form-control">
+                </div>
+
+                <div class="mb-3">
+                    <label>Содержание</label>
+                    <textarea name="content" class="form-control" rows="5" required></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <input type="checkbox" name="is_active" checked> Активно
+                </div>
+
+                <button type="submit" class="btn btn-success">Сохранить</button>
+                <a href="{% url 'admin_rule_list' %}" class="btn btn-secondary">Отмена</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
