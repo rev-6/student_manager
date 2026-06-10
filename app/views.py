@@ -15,9 +15,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q, Count
 from .models import *
 from datetime import timedelta
-import datetime
-import threading
-import time
+import datetime, threading, time
 
 def main(request):
     try:
