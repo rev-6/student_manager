@@ -101,9 +101,7 @@ def student_registration(request):
                 if user is not None:
                     login(request, user)
                     messages.success(request, 'Регистрация прошла успешно!')
-                    
-                    # Перенаправляем на страницу с правилами
-                    #return redirect('view_rules')
+                    return redirect('view_rules')
                 else:
                     messages.error(request, 'Ошибка авторизации после регистрации.')
                     return redirect('login')
