@@ -22,7 +22,7 @@ class Student(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     registration_date = models.DateTimeField(auto_now_add=True)
     last_activity = models.DateTimeField(auto_now=True)
-    counter = models.BooleanField(blank=True)
+    is_logged_in = models.BooleanField(default=False)
 
     def get_unread_messages_count(self):
         """Возвращает количество непрочитанных сообщений"""

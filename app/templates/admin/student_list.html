@@ -3,6 +3,36 @@
 {% block title %}Управление студентами{% endblock %}
 
 {% block admin_content %}
+<!-- В самом верху, под заголовком -->
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body py-2">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-check"></i> В системе: {{ logged_in_students }}
+                </h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body py-2">
+                <h5 class="mb-0">
+                    <i class="fas fa-users"></i> Всего: {{ total_students }}
+                </h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-warning text-white">
+            <div class="card-body py-2">
+                <h5 class="mb-0">
+                    <i class="fas fa-desktop"></i> Работают: {{ working_now }}
+                </h5>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="container-fluid mt-4">
     <div class="card shadow">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
@@ -98,27 +128,27 @@
 </div>
 
 <script>
-function confirmDelete(studentId) {
-    if (confirm('Вы уверены, что хотите удалить этого студента?')) {
-        window.location.href = `/admin/students/${studentId}/delete/`;
+    function confirmDelete(studentId) {
+        if (confirm('Вы уверены, что хотите удалить этого студента?')) {
+            window.location.href = `/admin/students/${studentId}/delete/`;
+        }
     }
-}
 
-// Поиск
-document.getElementById('searchBtn').addEventListener('click', function() {
-    const searchText = document.getElementById('searchInput').value.toLowerCase();
-    const rows = document.querySelectorAll('tbody tr');
+    // Поиск
+    document.getElementById('searchBtn').addEventListener('click', function () {
+        const searchText = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('tbody tr');
 
-    rows.forEach(row => {
-        const text = row.innerText.toLowerCase();
-        row.style.display = text.includes(searchText) ? '' : 'none';
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(searchText) ? '' : 'none';
+        });
     });
-});
 
-document.getElementById('searchInput').addEventListener('keyup', function(e) {
-    if (e.key === 'Enter') {
-        document.getElementById('searchBtn').click();
-    }
-});
+    document.getElementById('searchInput').addEventListener('keyup', function (e) {
+        if (e.key === 'Enter') {
+            document.getElementById('searchBtn').click();
+        }
+    });
 </script>
 {% endblock %}

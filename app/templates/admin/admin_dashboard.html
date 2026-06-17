@@ -5,54 +5,146 @@
 {% block admin_content %}
 <div class="container mt-4">
     <h2><i class="fas fa-tachometer-alt"></i> Панель управления</h2>
-
-    <!-- Карточки -->
+    <!-- Карточки статистики -->
     <div class="row mt-4">
         <div class="col-md-3">
-            <div class="card bg-primary text-white">
+            <div class="card bg-success text-white shadow">
                 <div class="card-body">
-                    <h3>{{ total_students }}</h3>
-                    <p>Студентов</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">✅ В системе</h6>
+                            <h2 class="mb-0">{{ logged_in_students }}</h2>
+                            <small>из {{ total_students }} всего</small>
+                        </div>
+                        <i class="fas fa-user-check fa-3x opacity-50"></i>
+                    </div>
                 </div>
             </div>
         </div>
+
         <div class="col-md-3">
-            <div class="card bg-success text-white">
+            <div class="card bg-secondary text-white shadow">
                 <div class="card-body">
-                    <h3>{{ working_now }}</h3>
-                    <p>Работают сейчас</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">❌ Не в системе</h6>
+                            <h2 class="mb-0">{{ logged_out_students }}</h2>
+                            <small>из {{ total_students }} всего</small>
+                        </div>
+                        <i class="fas fa-user-slash fa-3x opacity-50"></i>
+                    </div>
                 </div>
             </div>
         </div>
+
         <div class="col-md-3">
-            <div class="card bg-warning text-white">
+            <div class="card bg-primary text-white shadow">
                 <div class="card-body">
-                    <h3>{{ unread_messages }}</h3>
-                    <p>Непрочитанных</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">👨‍🎓 Всего студентов</h6>
+                            <h2 class="mb-0">{{ total_students }}</h2>
+                            <small>зарегистрировано</small>
+                        </div>
+                        <i class="fas fa-users fa-3x opacity-50"></i>
+                    </div>
                 </div>
             </div>
         </div>
+
         <div class="col-md-3">
-            <div class="card bg-info text-white">
+            <div class="card bg-warning text-white shadow">
                 <div class="card-body">
-                    <h3>{{ active_rules }}</h3>
-                    <p>Активных правил</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">🖥️ Работают</h6>
+                            <h2 class="mb-0">{{ working_now }}</h2>
+                            <small>активных сессий</small>
+                        </div>
+                        <i class="fas fa-desktop fa-3x opacity-50"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <div class="row mt-3">
+        <div class="col-md-3">
+            <div class="card bg-info text-white shadow">
+                <div class="card-body">
+                    <h6 class="card-title">📨 Непрочитанных</h6>
+                    <h2>{{ unread_messages }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-dark text-white shadow">
+                <div class="card-body">
+                    <h6 class="card-title">📜 Активных правил</h6>
+                    <h2>{{ active_rules }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-user-check"></i> Активные студенты (в системе) — {{ logged_in_students }}
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if active_students_list %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ФИО</th>
+                            <th>Студенческий ID</th>
+                            <th>Группа</th>
+                            <th>Статус</th>
+                            <th>Последний вход</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in active_students_list %}
+                        <tr>
+                            <td>{{ student.full_name }}</td>
+                            <td>{{ student.student_id }}</td>
+                            <td>{{ student.group }}</td>
+                            <td>
+                                {% if student.is_logged_in %}
+                                <span class="badge bg-success">✅ В сети</span>
+                                {% else %}
+                                <span class="badge bg-secondary">❌ Не в сети</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ student.user.last_login|date:"d.m.Y H:i"|default:"—" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if logged_in_students > 10 %}
+            <p class="text-muted text-end">Показано 10 из {{ logged_in_students }}</p>
+            {% endif %}
+            {% else %}
+            <p class="text-muted text-center mb-0">Нет активных студентов в системе</p>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- Активные сессии -->
     <div class="card mt-4">
-        <div class="card-header">
-            <i class="fas fa-play"></i> Активные сессии
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0"><i class="fas fa-play-circle"></i> Активные рабочие сессии</h5>
         </div>
         <div class="card-body">
             {% if active_sessions %}
             <ul class="list-group">
                 {% for session in active_sessions %}
                 <li class="list-group-item">
-                    {{ session.student.full_name }} - ПК: {{ session.computer_number|default:"—" }}
+                    {{ session.student.full_name }} — ПК: {{ session.computer_number|default:"—" }}
                     <small class="text-muted">с {{ session.start_time|date:"H:i" }}</small>
                 </li>
                 {% endfor %}
@@ -63,17 +155,18 @@
         </div>
     </div>
 
-    <!-- Новые студенты -->
+    <!-- Последние студенты -->
     <div class="card mt-4">
-        <div class="card-header">
-            <i class="fas fa-user-plus"></i> Новые студенты
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-user-plus"></i> Последние зарегистрированные студенты</h5>
         </div>
         <div class="card-body">
             {% if recent_students %}
             <ul class="list-group">
                 {% for student in recent_students %}
-                <li class="list-group-item">
-                    {{ student.full_name }} - {{ student.group }}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ student.full_name }} — {{ student.group }}
+                    <small class="text-muted">{{ student.student_id }}</small>
                 </li>
                 {% endfor %}
             </ul>

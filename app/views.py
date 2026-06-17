@@ -295,32 +295,6 @@ def mark_all_read(request):
     
     return redirect('student_messages')
 
-def public_working_students(request):
-    working_students = Student.objects.filter(
-        work_sessions__is_active=True
-    ).distinct().select_related('user')
-    
-    # Компьютерные станции с текущими студентами
-    occupied_stations = ComputerStation.objects.filter(
-        status2='occupied'
-    ).select_related('current_student')
-    
-    # Статистика
-    total_working = working_students.count()
-    total_computers = ComputerStation.objects.count()
-    available_computers = ComputerStation.objects.filter(status2='available').count()
-    
-    context = {
-        'working_students': working_students,
-        'occupied_stations': occupied_stations,
-        'total_working': total_working,
-        'total_computers': total_computers,
-        'available_computers': available_computers,
-        'current_time': datetime.datetime.now(),
-    }
-    return render(request, 'public/working_students.html', context)
-
-
 def admin_required(view_func): #Декоратор для проверки прав администратора
     decorated_view_func = login_required(
         user_passes_test(
@@ -332,10 +306,23 @@ def admin_required(view_func): #Декоратор для проверки пр�
 
 @admin_required
 def admin_dashboard(request):
-    """Админ-панель"""
+    """Админ-панель со счётчиком активных студентов"""
+    
+    # сколько студентов вошли в аккаунт
+    logged_in_students = Student.objects.filter(is_logged_in=True).count()
+    total_students = Student.objects.count()
+    logged_out_students = Student.objects.filter(is_logged_in=False).count()
+    
+    # Список активных студентов (кто сейчас в системе)
+    active_students_list = Student.objects.filter(is_logged_in=True).select_related('user')[:10]
     
     context = {
-        'total_students': Student.objects.count(),
+
+        'logged_in_students': logged_in_students,      # Сколько вошли
+        'total_students': total_students,              # Всего студентов
+        'logged_out_students': logged_out_students,    # Сколько вышли
+        'active_students_list': active_students_list,  # Список активных
+        
         'working_now': WorkSession.objects.filter(is_active=True).count(),
         'unread_messages': Message.objects.filter(is_read=False).count(),
         'active_rules': Rule.objects.filter(is_active=True).count(),
@@ -346,12 +333,15 @@ def admin_dashboard(request):
     return render(request, 'admin/admin_dashboard.html', context)
 
 @admin_required
-def admin_student_list(request): #Список студентов с фильтрацией и поиском
+def admin_student_list(request):
     students = Student.objects.all()
+    
     # Фильтрация по статусу
     status_filter = request.GET.get('status')
-    if status_filter:
-        students = students.filter(status=status_filter)
+    if status_filter == 'active':
+        students = students.filter(is_logged_in=True)
+    elif status_filter == 'inactive':
+        students = students.filter(is_logged_in=False)
 
     # Фильтрация по группе
     group_filter = request.GET.get('group')
@@ -368,7 +358,7 @@ def admin_student_list(request): #Список студентов с фильт�
             Q(phone__icontains=search_query))
 
     # Сортировка
-    sort_by = request.GET.get('sort', '-registration_date')
+    sort_by = request.GET.get('sort', '-id')
     students = students.order_by(sort_by)
     
     # Пагинация
@@ -376,15 +366,15 @@ def admin_student_list(request): #Список студентов с фильт�
     page = request.GET.get('page')
     students_page = paginator.get_page(page)
     
-    # Статистика
+    # Статистика с счётчиками
     total_students = Student.objects.count()
-    active_students = Student.objects.filter(status='active').count()
+    logged_in_students = Student.objects.filter(is_logged_in=True).count()  
     working_now = Student.objects.filter(work_sessions__is_active=True).distinct().count()
     
     context = {
         'students': students_page,
         'total_students': total_students,
-        'active_students': active_students,
+        'logged_in_students': logged_in_students,  
         'working_now': working_now,
         'status_filter': status_filter,
         'group_filter': group_filter,
@@ -484,64 +474,36 @@ def admin_student_create(request):
    
     return render(request, 'admin/student_form.html', {'form': form, 'action': 'create'})
 
-@admin_required
-def admin_student_edit(request, pk):
-    """Редактирование студента администратором"""
-    
-    # Получаем студента или 404
-    student = get_object_or_404(Student, id=pk)
-    
-    if request.method == 'POST':
-        form = AdminStudentForm(request.POST, request.FILES, instance=student)
-        
-        if form.is_valid():
-            # Обновляем данные пользователя
-            user = student.user
-            user.first_name = form.cleaned_data['first_name']
-            user.last_name = form.cleaned_data['last_name']
-            user.email = form.cleaned_data['email']
-            user.username = form.cleaned_data['email']  # Обновляем username тоже
-            
-            # Если указан новый пароль
-            password = form.cleaned_data.get('password')
-            if password:
-                user.set_password(password)
-            
-            user.save()
-            
-            # Сохраняем студента
-            student = form.save(commit=False)
-            student.user = user
-            student.full_name = f"{user.first_name} {user.last_name}"
-            student.email = user.email
-            student.save()
-            
-            messages.success(request, f'Студент "{student.full_name}" успешно обновлен!')
-            return redirect('admin_student_list')
-        else:
-            messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
+def get_client_ip(request):
+    """Получить IP-адрес клиента"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
     else:
-        # GET запрос - заполняем форму данными студента
-        initial_data = {
-            'first_name': student.user.first_name if student.user else '',
-            'last_name': student.user.last_name if student.user else '',
-            'email': student.email,
-            'student_id': student.student_id,
-            'phone': student.phone,
-            'group': student.group,
-            'redmine_id': student.redmine_id,
-            'gitlab_id': student.gitlab_id,
-        }
-        form = AdminStudentForm(initial=initial_data, instance=student)
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+def public_working_students(request):
+    working_students = Student.objects.filter(
+        work_sessions__is_active=True
+    ).distinct().select_related('user')
+    
+    active_sessions = WorkSession.objects.filter(is_active=True).select_related('student')
+    
+    # Статистика
+    total_working = working_students.count()
+    total_computers = 0  
+    available_computers = 0  
     
     context = {
-        'form': form,
-        'student': student,
-        'action': 'edit',
-        'page_title': f'Редактирование студента: {student.full_name}'
+        'working_students': working_students,
+        'active_sessions': active_sessions,
+        'total_working': total_working,
+        'total_computers': total_computers,
+        'available_computers': available_computers,
+        'current_time': datetime.datetime.now(),
     }
-    
-    return render(request, 'admin/student_form.html', context)
+    return render(request, 'public/working_students.html', context)
 
 @admin_required
 def admin_student_delete(request, pk):
